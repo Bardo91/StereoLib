@@ -16,5 +16,9 @@ if(DOXYGEN_FOUND)
 		COMMENT "Generating API documentation with Doxygen" VERBATIM)
 endif(DOXYGEN_FOUND)
 
+add_subdirectory(lib/bovil/src)
+add_subdirectory(lib/cjson/src)
+add_subdirectory(lib/libsvm/src)
+
 # Library Projects
 add_subdirectory(src)

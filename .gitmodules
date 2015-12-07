@@ -1,0 +1,9 @@
+[submodule "lib/bovil"]
+	path = lib/bovil
+	url = https://github.com/bardo91/bovil.git
+[submodule "lib/cjson"]
+	path = lib/cjson
+	url = https://github.com/Bardo91/cjson.git
+[submodule "lib/libsvmpp"]
+	path = lib/libsvmpp
+	url = https://github.com/Bardo91/libsvmpp
