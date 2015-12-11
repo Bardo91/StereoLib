@@ -81,7 +81,7 @@ public:		// Public interface
 
 	/// Add points into internal cloud.
 	/// \param _cloud:
-	pcl::PointCloud< pcl::PointXYZ>::Ptr addPoints(const pcl::PointCloud< pcl::PointXYZ>::Ptr &_cloud, enum eHistoryCalculation _calculation);
+	pcl::PointCloud< pcl::PointXYZ>::Ptr addPoints(const pcl::PointCloud< pcl::PointXYZ>::Ptr &_cloud, const Eigen::Vector4f &_translationPrediction, const Eigen::Quaternionf &_qRotationPrediction, enum eHistoryCalculation _calculation);
 
 	/// Cluster internal point cloud and returns vector with clusters
 	/// \return  
@@ -139,7 +139,7 @@ private:	// Members
 	const double cMaxTranslation	= 5;			// 10 mm 
 
 	//history calculation options
-	pcl::PointCloud< pcl::PointXYZ>::Ptr addPointsSimple(const pcl::PointCloud<pcl::PointXYZ>::Ptr & _cloud);
+	pcl::PointCloud< pcl::PointXYZ>::Ptr addPointsSimple(const pcl::PointCloud<pcl::PointXYZ>::Ptr & _cloud, const Eigen::Vector4f &_translationPrediction, const Eigen::Quaternionf &_qRotationPrediction);
 	pcl::PointCloud< pcl::PointXYZ>::Ptr addPointsSequential(const pcl::PointCloud<pcl::PointXYZ>::Ptr & _cloud);
 	pcl::PointCloud< pcl::PointXYZ>::Ptr addPointsAccurate(const pcl::PointCloud<pcl::PointXYZ>::Ptr & _cloud);
 	void transformCloudtoTargetCloudAndAddToHistory(const pcl::PointCloud<pcl::PointXYZ>::Ptr & _cloud, const pcl::PointCloud<pcl::PointXYZ>::Ptr & _target, const Eigen::Matrix4f &_guess);

@@ -71,11 +71,11 @@ PointCloud<PointXYZ>::Ptr EnvironmentMap::filter(const PointCloud<PointXYZ>::Ptr
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-// you can only use one type of history calculaton in the application, because they use the same members which need to be caluclated correctly in previous steps
-pcl::PointCloud< pcl::PointXYZ>::Ptr EnvironmentMap::addPoints(const PointCloud<PointXYZ>::Ptr &_cloud, enum eHistoryCalculation _calculation) {
+// you can only use one type of history calculation in the application, because they use the same members which need to be calculated correctly in previous steps
+pcl::PointCloud< pcl::PointXYZ>::Ptr EnvironmentMap::addPoints(const PointCloud<PointXYZ>::Ptr &_cloud, const Vector4f &_translationPrediction, const Quaternionf &_qRotationPrediction, enum eHistoryCalculation _calculation) {
 	switch (_calculation) {
 		case eHistoryCalculation::Simple:
-			return addPointsSimple(_cloud);
+			return addPointsSimple(_cloud, _translationPrediction, _qRotationPrediction);
 			break;
 		case eHistoryCalculation::Accurate:
 			return addPointsAccurate(_cloud);
@@ -90,7 +90,7 @@ pcl::PointCloud< pcl::PointXYZ>::Ptr EnvironmentMap::addPoints(const PointCloud<
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-pcl::PointCloud< pcl::PointXYZ>::Ptr EnvironmentMap::addPointsSimple(const PointCloud<PointXYZ>::Ptr & _cloud) {
+pcl::PointCloud< pcl::PointXYZ>::Ptr EnvironmentMap::addPointsSimple(const PointCloud<PointXYZ>::Ptr & _cloud, const Vector4f &_translationPrediction, const Quaternionf &_qRotationPrediction) {
 	if (mCloud.size() == 0) {
 		if (mCloudHistory.size() == 0) {
 			// Store First cloud as reference
@@ -108,14 +108,10 @@ pcl::PointCloud< pcl::PointXYZ>::Ptr EnvironmentMap::addPointsSimple(const Point
 	}
 	else {
 		// Storing and processing history of point clouds.
-		//temporary cleaned cloud for calculation of the transformation. We do not want to voxel in the camera coordinate system
-		//because we lose some points when rotating it to the map and voxeling there. That's why we rotate the original cloud
-		// solving cloud history 1
+
 		Matrix4f guess;
-		if (mCloudHistory.size() == 0)
-			guess = transformationFromSensor(mCloud.makeShared());
-		else
-			guess = transformationFromSensor(mCloudHistory.back());
+		guess.col(3) = _translationPrediction;
+		guess.block<3, 3>(0, 0) = _qRotationPrediction.matrix();
 
 		transformCloudtoTargetCloudAndAddToHistory(_cloud, mCloud.makeShared(), guess);
 	}
@@ -228,6 +224,8 @@ pcl::PointCloud< pcl::PointXYZ>::Ptr EnvironmentMap::addPointsAccurate(const Poi
 
 void EnvironmentMap::transformCloudtoTargetCloudAndAddToHistory(const PointCloud<PointXYZ>::Ptr & _cloud, const PointCloud<PointXYZ>::Ptr & _target, const Matrix4f &_guess)
 {
+	//temporary cleaned cloud for calculation of the transformation. We do not want to voxel in the camera coordinate system
+	//because we lose some points when rotating it to the map and voxeling there. That's why we rotate the original cloud
 	PointCloud<PointXYZ>::Ptr filtered_cloud = filter(_cloud);
 	PointCloud<PointXYZ> filtered_cloudWCS;
 	Matrix4f transformation = getTransformationBetweenPcs(*voxel(filtered_cloud), *_target, _guess);
