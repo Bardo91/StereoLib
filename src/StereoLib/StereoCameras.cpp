@@ -10,14 +10,13 @@
 using namespace cv;
 using namespace std;
 using namespace pcl;
+using namespace Eigen;
 
 //---------------------------------------------------------------------------------------------------------------------
 StereoCameras::StereoCameras(unsigned _indexCamera1, unsigned _indexCamera2): mCamera1(_indexCamera1), mCamera2(_indexCamera2) {
-	updateGlobalRT(cv::Mat::eye(3, 3, CV_64F), cv::Mat::zeros(3,1, CV_64F));
 }
 
 StereoCameras::StereoCameras(string _pattern1, string _pattern2): mCamera1(_pattern1), mCamera2(_pattern2) {
-	updateGlobalRT(cv::Mat::eye(3, 3, CV_64F), cv::Mat::zeros(3, 1, CV_64F));
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -153,14 +152,28 @@ PointCloud<PointXYZ>::Ptr StereoCameras::pointCloud(const cv::Mat &_frame1, cons
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-std::vector<cv::Point2f> StereoCameras::project3dPointsWCS(const std::vector<cv::Point3f>& _points, bool _isLeftCamera) {
+std::vector<cv::Point2f> StereoCameras::project3dPoints(const std::vector<cv::Point3f>& _points, bool _isLeftCamera, const Eigen::Vector4f &_position, const Eigen::Quaternionf &_orientation) {
+	// Transform eigen to opencv matrix.
+
+	Matrix<float,3,3, RowMajor> rotation	= _orientation.conjugate().matrix();
+	Matrix<float,3,1> translation			= -(_position.block<3, 1>(0, 0));
+
+	// Put Rotation and translation in OpenCV format
+	Mat R(3,3, CV_32F), T(3,1, CV_32F);
+	memcpy(R.data, rotation.data(),		sizeof(float)*9);
+	memcpy(T.data, translation.data(),	sizeof(float)*3);
+
+	R.convertTo(R, CV_64F);
+	T.convertTo(T, CV_64F);
+	
+	// Project points.
 	std::vector<cv::Point2f> points2d;
 
 	if (_isLeftCamera) {
-		projectPoints(_points, mGlobalR, mGlobalT, camera(0).matrix(), camera(0).distCoeffs(), points2d);
+		projectPoints(_points, R, T, camera(0).matrix(), camera(0).distCoeffs(), points2d);
 	}
 	else {
-		projectPoints(_points, mR*mGlobalR, mT + mR*mGlobalT,  camera(1).matrix(), camera(1).distCoeffs(), points2d);
+		projectPoints(_points, mR*R, mT + mR*T,  camera(1).matrix(), camera(1).distCoeffs(), points2d);
 
 	}
 	return points2d;
@@ -226,22 +239,7 @@ void StereoCameras::load(string _filePath) {
 	mCalibrated = true;
 }
 
-void StereoCameras::updateGlobalRT(const cv::Mat &_R,const cv::Mat &_T)
-{
-	mGlobalR = _R;
-	mGlobalT = _T;
-}
-
-cv::Mat StereoCameras::globalRotation() const
-{
-	return mGlobalR;
-}
-
-cv::Mat StereoCameras::globalTranslation() const
-{
-	return mGlobalT;
-}
-
+//---------------------------------------------------------------------------------------------------------------------
 void StereoCameras::rangeZ(double _min, double _max){ 
 	mMinZ = _min;
 	mMaxZ = _max;
