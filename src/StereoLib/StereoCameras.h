@@ -64,7 +64,7 @@ public:
 	pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloud(const cv::Mat &_frame1, const cv::Mat &_frame2, std::pair<int, int> _disparityRange, int _squareSize, int _maxReprojectionError);
 
 	/// Project 3d points into 2d world of the camera using global coordinates.
-	std::vector<cv::Point2f> project3dPointsWCS(const std::vector<cv::Point3f> &_points, bool _isLeftCamera);
+	std::vector<cv::Point2f> project3dPoints(const std::vector<cv::Point3f> &_points, bool _isLeftCamera, const Eigen::Vector4f &_position, const Eigen::Quaternionf &_orientation);
 
 	/// Get one of the cameras.
 	/// \param _index: 0 for first camera; 1 for the second one.
@@ -99,15 +99,6 @@ public:
 	/// \param _filePath: path of the file.
 	void load(std::string _filePath);
 
-	/// Set the global camera rotation and translation
-	void updateGlobalRT(const cv::Mat &_R,const cv::Mat &_T);
-
-	/// Get the global camera rotation
-	cv::Mat globalRotation() const;
-
-	/// Get the global camera translation
-	cv::Mat globalTranslation() const;
-
 	/// Set allowed range on Z for 3d points
 	void rangeZ(double _min, double _max);
 
@@ -124,7 +115,6 @@ private:
 private:
 	Camera mCamera1, mCamera2;
 	cv::Mat mR, mT, mE, mF;
-	cv::Mat mGlobalR, mGlobalT; //these describe the transformation from the world coordinate system, if it's used
 
 	cv::Rect mLeftRoi, mRightRoi;
 
