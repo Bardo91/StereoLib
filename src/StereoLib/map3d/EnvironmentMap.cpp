@@ -14,6 +14,11 @@
 #include <pcl/filters/extract_indices.h>
 #include <pcl/common/common.h>
 
+#include <pcl/visualization/pcl_visualizer.h>
+#include <pcl/common/common_headers.h>
+
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
 using namespace pcl;
 using namespace std;
 using namespace Eigen;
@@ -109,7 +114,7 @@ pcl::PointCloud< pcl::PointXYZ>::Ptr EnvironmentMap::addPointsSimple(const Point
 	else {
 		// Storing and processing history of point clouds.
 
-		Matrix4f guess;
+		Matrix4f guess = Matrix4f::Zero();
 		guess.col(3) = _translationPrediction;
 		guess.block<3, 3>(0, 0) = _qRotationPrediction.matrix();
 
@@ -222,6 +227,22 @@ pcl::PointCloud< pcl::PointXYZ>::Ptr EnvironmentMap::addPointsAccurate(const Poi
 	return _cloud;
 }
 
+PointCloud<PointXYZRGB>::Ptr colorizePointCloud2(const PointCloud<PointXYZ>::Ptr & _cloud, int _r, int _g, int _b) {
+	PointCloud<PointXYZRGB>::Ptr colorizedCloud(new PointCloud<PointXYZRGB>);
+	for (PointXYZ point : *_cloud) {
+		PointXYZRGB p;
+		p.x = point.x;
+		p.y = point.y;
+		p.z = point.z;
+		p.r = _r;
+		p.g = _g;
+		p.b = _b;
+		colorizedCloud->push_back(p);
+	}
+	return colorizedCloud;
+}
+
+int index = 0;
 void EnvironmentMap::transformCloudtoTargetCloudAndAddToHistory(const PointCloud<PointXYZ>::Ptr & _cloud, const PointCloud<PointXYZ>::Ptr & _target, const Matrix4f &_guess)
 {
 	//temporary cleaned cloud for calculation of the transformation. We do not want to voxel in the camera coordinate system
@@ -231,9 +252,32 @@ void EnvironmentMap::transformCloudtoTargetCloudAndAddToHistory(const PointCloud
 	Matrix4f transformation = getTransformationBetweenPcs(*voxel(filtered_cloud), *_target, _guess);
 	transformPointCloud(*filtered_cloud, filtered_cloudWCS, transformation);
 	PointCloud<PointXYZ>::Ptr voxeledFiltered_cloudWCS = voxel(filtered_cloudWCS.makeShared());
+	
 	cout << "The filtered cloud has: " << filtered_cloudWCS.size() << "points" << endl;
 	cout << "The voxeled cloud has: " << voxeledFiltered_cloudWCS->size() << "points" << endl;
 	cout << "The guess of the transformation is" << endl << _guess << endl << "And the result is:"<< endl  << transformation << endl;
+	
+	boost::shared_ptr<pcl::visualization::PCLVisualizer> m3dViewer = boost::shared_ptr<pcl::visualization::PCLVisualizer>(new pcl::visualization::PCLVisualizer("debug"+std::to_string(index++)));
+	m3dViewer->removeAllPointClouds();
+	m3dViewer->initCameraParameters ();
+	m3dViewer->addCoordinateSystem (0.25);
+	
+
+	m3dViewer->spinOnce();
+	m3dViewer->addPointCloud<PointXYZRGB>(colorizePointCloud2(_cloud, 255, 0, 0),"Cloud1");
+	m3dViewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "Cloud1");
+
+	m3dViewer->spinOnce();
+	m3dViewer->addPointCloud<PointXYZRGB>(colorizePointCloud2(filtered_cloudWCS.makeShared(), 0, 255, 0),"Cloud2");
+	m3dViewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 5, "Cloud2");
+
+	m3dViewer->addPointCloud<PointXYZRGB>(colorizePointCloud2(voxeledFiltered_cloudWCS, 0, 0, 255),"Cloud3");
+	m3dViewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 7, "Cloud3");
+
+	cv::waitKey();
+
+	m3dViewer->spinOnce();
+
 	voxeledFiltered_cloudWCS->sensor_orientation_ = Quaternionf(transformation.block<3, 3>(0, 0));
 	voxeledFiltered_cloudWCS->sensor_origin_ = transformation.col(3);
 	mCloudHistory.push_back(voxeledFiltered_cloudWCS);
