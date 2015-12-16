@@ -110,6 +110,8 @@ public:		// Public interface
 	/// point clouds can have orientation and origin data inside, but sometimes we need the Matrix4f form. 
 	/// This function returns that matrix
 	Eigen::Matrix4f transformationFromSensor(const pcl::PointCloud<pcl::PointXYZ>::Ptr &_cloud);
+	
+	void updateSensorPose(const Eigen::Vector4f &_position, const Eigen::Quaternionf &_orientation);
 private:	// Private methods
 	// Calculate transformation between two point cloud using ICP-NL algorithm.
 	Eigen::Matrix4f getTransformationBetweenPcs(const pcl::PointCloud<pcl::PointXYZ> &_newCloud,
@@ -144,7 +146,6 @@ private:	// Members
 	pcl::PointCloud< pcl::PointXYZ>::Ptr addPointsAccurate(const pcl::PointCloud<pcl::PointXYZ>::Ptr & _cloud);
 	void transformCloudtoTargetCloudAndAddToHistory(const pcl::PointCloud<pcl::PointXYZ>::Ptr & _cloud, const pcl::PointCloud<pcl::PointXYZ>::Ptr & _target, const Eigen::Matrix4f &_guess);
 	pcl::PointCloud<pcl::PointXYZ> convoluteCloudsInQueue(std::deque<pcl::PointCloud<pcl::PointXYZ>::Ptr> _cloudQueue);
-	void addOrientationAndOriginDataToMap(const pcl::PointCloud<pcl::PointXYZ>::Ptr & _cloud);
 	Eigen::Vector3f originInverse(const pcl::PointCloud<pcl::PointXYZ>::Ptr &_cloud);
 	Eigen::Quaternionf sensorInverse(const pcl::PointCloud<pcl::PointXYZ>::Ptr &_cloud);
 };	// class EnvironmentMap

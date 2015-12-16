@@ -96,6 +96,10 @@ pcl::PointCloud< pcl::PointXYZ>::Ptr EnvironmentMap::addPoints(const PointCloud<
 
 //---------------------------------------------------------------------------------------------------------------------
 pcl::PointCloud< pcl::PointXYZ>::Ptr EnvironmentMap::addPointsSimple(const PointCloud<PointXYZ>::Ptr & _cloud, const Vector4f &_translationPrediction, const Quaternionf &_qRotationPrediction) {
+	if (_cloud->size() == 0) {
+		return _cloud;
+	}
+
 	if (mCloud.size() == 0) {
 		if (mCloudHistory.size() == 0) {
 			// Store First cloud as reference
@@ -121,7 +125,7 @@ pcl::PointCloud< pcl::PointXYZ>::Ptr EnvironmentMap::addPointsSimple(const Point
 		transformCloudtoTargetCloudAndAddToHistory(_cloud, mCloud.makeShared(), guess);
 	}
 
-	addOrientationAndOriginDataToMap(mCloudHistory.back());
+	updateSensorPose(mCloudHistory.back()->sensor_origin_, mCloudHistory.back()->sensor_orientation_);
 
 	if (mCloudHistory.size() >= mParams.historySize) {
 		cout << "Map extended" << endl;
@@ -242,9 +246,11 @@ PointCloud<PointXYZRGB>::Ptr colorizePointCloud2(const PointCloud<PointXYZ>::Ptr
 	return colorizedCloud;
 }
 
-int index = 0;
 void EnvironmentMap::transformCloudtoTargetCloudAndAddToHistory(const PointCloud<PointXYZ>::Ptr & _cloud, const PointCloud<PointXYZ>::Ptr & _target, const Matrix4f &_guess)
 {
+	if(_cloud->size() == 0)
+		return;
+
 	//temporary cleaned cloud for calculation of the transformation. We do not want to voxel in the camera coordinate system
 	//because we lose some points when rotating it to the map and voxeling there. That's why we rotate the original cloud
 	PointCloud<PointXYZ>::Ptr filtered_cloud = filter(_cloud);
@@ -256,27 +262,6 @@ void EnvironmentMap::transformCloudtoTargetCloudAndAddToHistory(const PointCloud
 	cout << "The filtered cloud has: " << filtered_cloudWCS.size() << "points" << endl;
 	cout << "The voxeled cloud has: " << voxeledFiltered_cloudWCS->size() << "points" << endl;
 	cout << "The guess of the transformation is" << endl << _guess << endl << "And the result is:"<< endl  << transformation << endl;
-	
-	//boost::shared_ptr<pcl::visualization::PCLVisualizer> m3dViewer = boost::shared_ptr<pcl::visualization::PCLVisualizer>(new pcl::visualization::PCLVisualizer("debug"+std::to_string(index++)));
-	//m3dViewer->removeAllPointClouds();
-	//m3dViewer->initCameraParameters ();
-	//m3dViewer->addCoordinateSystem (0.25);
-	//
-	//
-	//m3dViewer->spinOnce();
-	//m3dViewer->addPointCloud<PointXYZRGB>(colorizePointCloud2(_cloud, 255, 0, 0),"Cloud1");
-	//m3dViewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "Cloud1");
-	//
-	//m3dViewer->spinOnce();
-	//m3dViewer->addPointCloud<PointXYZRGB>(colorizePointCloud2(filtered_cloudWCS.makeShared(), 0, 255, 0),"Cloud2");
-	//m3dViewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 5, "Cloud2");
-	//
-	//m3dViewer->addPointCloud<PointXYZRGB>(colorizePointCloud2(voxeledFiltered_cloudWCS, 0, 0, 255),"Cloud3");
-	//m3dViewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 7, "Cloud3");
-	//
-	//cv::waitKey();
-	//
-	//m3dViewer->spinOnce();
 
 	voxeledFiltered_cloudWCS->sensor_orientation_ = Quaternionf(transformation.block<3, 3>(0, 0));
 	voxeledFiltered_cloudWCS->sensor_origin_ = transformation.col(3);
@@ -291,10 +276,9 @@ pcl::PointCloud<pcl::PointXYZ> EnvironmentMap::convoluteCloudsInQueue(std::deque
 	return convolutedSum;
 }
 
-void EnvironmentMap::addOrientationAndOriginDataToMap(const pcl::PointCloud<pcl::PointXYZ>::Ptr & _cloud)
-{
-	mCloud.sensor_orientation_ = _cloud->sensor_orientation_;
-	mCloud.sensor_origin_ = _cloud->sensor_origin_;
+void EnvironmentMap::updateSensorPose(const Eigen::Vector4f &_position, const Eigen::Quaternionf &_orientation){
+	mCloud.sensor_orientation_ =_orientation;
+	mCloud.sensor_origin_ = _position;
 }
 
 Eigen::Vector3f EnvironmentMap::originInverse(const pcl::PointCloud<pcl::PointXYZ>::Ptr &_cloud)
