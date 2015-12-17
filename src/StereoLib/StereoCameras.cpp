@@ -100,7 +100,7 @@ PointCloud<PointXYZ>::Ptr StereoCameras::pointCloud(const cv::Mat &_frame1, cons
 	vector<Point2i> keypoints;
 	computeFeatures(_frame1, keypoints);
 
-	std::cout << "Features computed in frame1: " << keypoints.size() << std::endl;
+	std::cout << "--> STEREO: Features computed in frame1: " << keypoints.size() << std::endl;
 
 	// Compute projection of epipolar lines into second image.
 	std::vector<cv::Vec3f> epilines;
@@ -131,12 +131,12 @@ PointCloud<PointXYZ>::Ptr StereoCameras::pointCloud(const cv::Mat &_frame1, cons
 		points2.insert(points2.end(), v.begin(), v.end());
 	}
 
-	std::cout << "Features matched: " << points1.size() << std::endl;
+	std::cout << "--> STEREO: Features matched: " << points1.size() << std::endl;
 	// Triangulate points using features in both images.
 	vector<Point3f> points3d = triangulate(points1, points2);
 	// Filter points using reprojection.
 	vector<Point3f> points3dFiltered = filterPoints(_frame1, _frame2, points1, points2, points3d, _maxReprojectionError);
-	std::cout << "Points Filtered with reprojection: " << points3dFiltered.size() << std::endl;
+	std::cout << "--> STEREO: Points Filtered with reprojection: " << points3dFiltered.size() << std::endl;
 
 	// Filter points by range.
 	PointCloud<PointXYZ>::Ptr cloud (new PointCloud<PointXYZ>());
@@ -146,7 +146,7 @@ PointCloud<PointXYZ>::Ptr StereoCameras::pointCloud(const cv::Mat &_frame1, cons
 			cloud->push_back(point);
 		}
 	}
-	std::cout << "Points in the selected range: " << cloud->size() << std::endl;
+	std::cout << "--> STEREO: Points in the selected range: " << cloud->size() << std::endl;
 
 	return cloud;
 }

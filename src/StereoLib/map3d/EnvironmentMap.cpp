@@ -89,7 +89,7 @@ pcl::PointCloud< pcl::PointXYZ>::Ptr EnvironmentMap::addPoints(const PointCloud<
 			return addPointsSequential(_cloud);
 			break;
 		default:
-			cout << "Wrong argument for addPoints()" << endl;
+			cout << "--> MAP: Wrong argument for addPoints()" << endl;
 			break;
 	}
 }
@@ -97,14 +97,14 @@ pcl::PointCloud< pcl::PointXYZ>::Ptr EnvironmentMap::addPoints(const PointCloud<
 //---------------------------------------------------------------------------------------------------------------------
 pcl::PointCloud< pcl::PointXYZ>::Ptr EnvironmentMap::addPointsSimple(const PointCloud<PointXYZ>::Ptr & _cloud, const Vector4f &_translationPrediction, const Quaternionf &_qRotationPrediction) {
 	if (_cloud->size() < 10) {
-		std::cout << "addPointsSimple detects that cloud has less than 10 points, ignoring it" << std::endl;
+		std::cout << "--> MAP: addPointsSimple detects that cloud has less than 10 points, ignoring it" << std::endl;
 		return _cloud;
 	}
 
 	if (mCloud.size() == 0) {
 		if (mCloudHistory.size() == 0) {
 			// Store First cloud as reference
-			cout << "This is the first point cloud, no map yet, adding to history" << endl;
+			cout << "--> MAP: This is the first point cloud, no map yet, adding to history" << endl;
 			PointCloud<PointXYZ>::Ptr firstCloud = voxel(filter(_cloud));
 			firstCloud->sensor_origin_ = Vector4f(0,0,0,1);
 			firstCloud->sensor_orientation_ = Quaternionf::Identity();
@@ -112,7 +112,7 @@ pcl::PointCloud< pcl::PointXYZ>::Ptr EnvironmentMap::addPointsSimple(const Point
 		}
 		// transform clouds to history until there are enough to make first map from history
 		else if (mCloudHistory.size() < mParams.historySize) {
-			printf("This is point cloud Nr. %d of %d needed for map.\n", mCloudHistory.size() + 1, mParams.historySize);
+			printf("--> MAP: This is point cloud Nr. %d of %d needed for map.\n", mCloudHistory.size() + 1, mParams.historySize);
 			transformCloudtoTargetCloudAndAddToHistory(_cloud, mCloudHistory[0], transformationFromSensor(mCloudHistory.back()));
 		}
 	}
@@ -129,7 +129,7 @@ pcl::PointCloud< pcl::PointXYZ>::Ptr EnvironmentMap::addPointsSimple(const Point
 	updateSensorPose(mCloudHistory.back()->sensor_origin_, mCloudHistory.back()->sensor_orientation_);
 
 	if (mCloudHistory.size() >= mParams.historySize) {
-		cout << "Map extended" << endl;
+		cout << "--> MAP: Map extended" << endl;
 		pcl::PointCloud<pcl::PointXYZ>::Ptr	lastJoinedCloud;
 		lastJoinedCloud = convoluteCloudsInQueue(mCloudHistory).makeShared();
 		mCloud += *lastJoinedCloud;
@@ -435,13 +435,13 @@ bool EnvironmentMap::getTransformationBetweenPcs(const PointCloud<PointXYZ>& _ne
 	_transformation = mPcJoiner.getFinalTransformation();
 
 	if (_transformation.hasNaN()) {
-		cerr << "---> CRITICAL ERROR! Transformation has nans!!! <---" << endl;
+		cerr << "--> MAP:  ---> CRITICAL ERROR! Transformation has nans!!! <---" << endl;
 		cv::waitKey();
 		exit(-1);
 	}
 
-	cout << "Time for alignment " << t << endl;
-	cout << "Fitness score " << mPcJoiner.getFitnessScore() << "   Has conveged? " << mPcJoiner.hasConverged() << endl;
+	cout << "--> MAP: Time for alignment " << t << endl;
+	cout << "--> MAP: Fitness score " << mPcJoiner.getFitnessScore() << "   Has conveged? " << mPcJoiner.hasConverged() << endl;
 
 	return mPcJoiner.hasConverged();
 }
@@ -482,9 +482,9 @@ PointCloud<PointXYZ> EnvironmentMap::convoluteCloudsOnGrid(const PointCloud<Poin
 			outCloud.push_back(point);
 		}
 	}
-	cout << "Size of first: " << _cloud1.size() << endl;
-	cout << "Size of second: " << _cloud2.size() << endl;
-	cout << "Size of result: " << outCloud.size() << endl;
+	cout << "--> MAP: Size of first: " << _cloud1.size() << endl;
+	cout << "--> MAP: Size of second: " << _cloud2.size() << endl;
+	cout << "--> MAP: Size of result: " << outCloud.size() << endl;
 	return outCloud;
 }
 
@@ -499,15 +499,15 @@ bool EnvironmentMap::validTransformation(const Matrix4f & _transformation, doubl
 	float roll, pitch, yaw;
 	getEulerAngles(aff, roll, pitch, yaw);
 
-	cout << "Rotations: " << roll << ", " << pitch << ", " << yaw << endl;
-	cout << "Translations: " << translation(0) << ", " << translation(1) << ", " << translation(2) << endl;
+	cout << "--> MAP: Rotations: " << roll << ", " << pitch << ", " << yaw << endl;
+	cout << "--> MAP: Translations: " << translation(0) << ", " << translation(1) << ", " << translation(2) << endl;
 
 	if (abs(roll) < cMaxAngle && abs(pitch) < cMaxAngle && abs(yaw) < cMaxAngle  &&
 		abs(translation(0)) < cMaxTranslation && abs(translation(1)) < cMaxTranslation && abs(translation(2)) < cMaxTranslation) {
-		cout << "Valid point cloud rotation" << endl;
+		cout << "--> MAP: Valid point cloud rotation" << endl;
 		return true;
 	} else {
-		cout << "Invalid point cloud rotation" << endl;
+		cout << "--> MAP: Invalid point cloud rotation" << endl;
 		return false;
 	}
 }
