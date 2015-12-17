@@ -47,6 +47,8 @@ else()
 	MESSAGE( FATAL_ERROR " --> Couldnt Add PCL and/or it's dependencies")
 endif()
 
+add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+
 # Library
 add_library(StereoLib STATIC ${STEREOLIB_SOURCE_FILES})
 target_include_directories(StereoLib PUBLIC ${PROJECT_SOURCE_DIR}/StereoLib)

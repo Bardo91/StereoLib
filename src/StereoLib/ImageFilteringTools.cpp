@@ -42,8 +42,8 @@ bool isBlurry(const Mat &_image, double _threshold) {
 
 void zeroCrossX(const cv::Mat &_binaryImage, cv::Mat &_output)
 {
-	int m = _binaryImage.rows;
-	int n = _binaryImage.cols;
+	unsigned int m = _binaryImage.rows;
+	unsigned int n = _binaryImage.cols;
 	_output = Mat(m,n, CV_8U);
 
 	for (uint i = 0; i < m; i++)
@@ -65,8 +65,8 @@ void zeroCrossX(const cv::Mat &_binaryImage, cv::Mat &_output)
 
 void zeroCrossY(const cv::Mat &_binaryImage, cv::Mat &_output)
 {
-	int m = _binaryImage.rows;
-	int n = _binaryImage.cols;
+	unsigned int m = _binaryImage.rows;
+	unsigned int n = _binaryImage.cols;
 	_output = Mat(m, n, CV_8U);
 
 	for (uint j = 0; j < n; j++)
