@@ -28,7 +28,7 @@ void EkfImuIcp::updateJf(const double _incT) {
 	mJf.block<3, 3>(0, 6) =I*_incT*_incT/2;
 	mJf.block<3, 3>(3, 6) =I*_incT;
 	
-	Eigen::Vector3d auxAcc({sign(mXfk(6,0)*mScaleFactor[0]), sign(mXfk(6,0)*mScaleFactor[1]), sign(mXfk(6,0)*mScaleFactor[2])});
+	Eigen::Vector3d auxAcc({sign(mXak(6,0)*mScaleFactor[0]), sign(mXak(6,0)*mScaleFactor[1]), sign(mXak(6,0)*mScaleFactor[2])});
 	Eigen::Matrix3d auxMatAcc = (auxAcc*Eigen::Matrix<double,1,3>({1,1,1})).cwiseProduct(I);;
 	mJf.block<3, 3>(6, 6) += auxMatAcc;
 
