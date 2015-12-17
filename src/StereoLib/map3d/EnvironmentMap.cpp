@@ -262,16 +262,16 @@ void EnvironmentMap::transformCloudtoTargetCloudAndAddToHistory(const PointCloud
 		transformPointCloud(*filtered_cloud, filtered_cloudWCS, transformation);
 		PointCloud<PointXYZ>::Ptr voxeledFiltered_cloudWCS = voxel(filtered_cloudWCS.makeShared());
 	
-		cout << "The filtered cloud has: " << filtered_cloudWCS.size() << "points" << endl;
-		cout << "The voxeled cloud has: " << voxeledFiltered_cloudWCS->size() << "points" << endl;
-		cout << "The guess of the transformation is" << endl << _guess << endl << "And the result is:"<< endl  << transformation << endl;
+		cout << "--> MAP: The filtered cloud has: " << filtered_cloudWCS.size() << "points" << endl;
+		cout << "--> MAP: The voxeled cloud has: " << voxeledFiltered_cloudWCS->size() << "points" << endl;
+		cout << "--> MAP: The guess of the transformation is" << endl << _guess << endl << "And the result is:"<< endl  << transformation << endl;
 
 		voxeledFiltered_cloudWCS->sensor_orientation_ = Quaternionf(transformation.block<3, 3>(0, 0));
 		voxeledFiltered_cloudWCS->sensor_origin_ = transformation.col(3);
 		mCloudHistory.push_back(voxeledFiltered_cloudWCS);
 	}
 	else {
-		cout << "ICP do not converge" << endl;
+		cout << "--> MAP: ICP do not converge" << endl;
 	}
 }
 
