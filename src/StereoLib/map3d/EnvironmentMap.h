@@ -114,8 +114,10 @@ public:		// Public interface
 	void updateSensorPose(const Eigen::Vector4f &_position, const Eigen::Quaternionf &_orientation);
 private:	// Private methods
 	// Calculate transformation between two point cloud using ICP-NL algorithm.
-	Eigen::Matrix4f getTransformationBetweenPcs(const pcl::PointCloud<pcl::PointXYZ> &_newCloud,
-		const pcl::PointCloud< pcl::PointXYZ> &_targetCloud,
+	bool getTransformationBetweenPcs(const pcl::PointCloud<pcl::PointXYZ> &_newCloud,
+		const pcl::PointCloud< pcl::PointXYZ> &_targetCloud, 
+		Eigen::Matrix4f &_transformation, 
+		double &_score,
 		const Eigen::Matrix4f &_initialGuess = Eigen::Matrix4f::Identity(),
 		pcl::PointCloud<pcl::PointXYZ> &_alignedCloud = pcl::PointCloud<pcl::PointXYZ>());
 	

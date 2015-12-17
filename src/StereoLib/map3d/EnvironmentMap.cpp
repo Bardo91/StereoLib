@@ -96,7 +96,8 @@ pcl::PointCloud< pcl::PointXYZ>::Ptr EnvironmentMap::addPoints(const PointCloud<
 
 //---------------------------------------------------------------------------------------------------------------------
 pcl::PointCloud< pcl::PointXYZ>::Ptr EnvironmentMap::addPointsSimple(const PointCloud<PointXYZ>::Ptr & _cloud, const Vector4f &_translationPrediction, const Quaternionf &_qRotationPrediction) {
-	if (_cloud->size() == 0) {
+	if (_cloud->size() < 10) {
+		std::cout << "addPointsSimple detects that cloud has less than 10 points, ignoring it" << std::endl;
 		return _cloud;
 	}
 
@@ -144,7 +145,7 @@ pcl::PointCloud< pcl::PointXYZ>::Ptr EnvironmentMap::addPointsSimple(const Point
 }
 //---------------------------------------------------------------------------------------------------------------------
 pcl::PointCloud< pcl::PointXYZ>::Ptr EnvironmentMap::addPointsSequential(const PointCloud<PointXYZ>::Ptr & _cloud) {
-	// Store First cloud as reference
+	/*// Store First cloud as reference
 	// 666 we store the actual first cloud instead of considering history, this means we accept the noise from the first cloud
 	if (mCloud.size() == 0) {
 		mCloud += *voxel(filter(_cloud));
@@ -179,13 +180,13 @@ pcl::PointCloud< pcl::PointXYZ>::Ptr EnvironmentMap::addPointsSequential(const P
 		// Finally discart oldest cloud
 		mCloudHistory.pop_front();
 	}
-
+	*/
 	return _cloud;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 pcl::PointCloud< pcl::PointXYZ>::Ptr EnvironmentMap::addPointsAccurate(const PointCloud<PointXYZ>::Ptr & _cloud) {
-	// Store First cloud as reference
+	/*// Store First cloud as reference
 	// 666 we store the actual first cloud instead of considering history, this means we accept the noise from the first cloud
 	if (mCloud.size() == 0) {
 		mCloud += *voxel(filter(_cloud));
@@ -227,7 +228,7 @@ pcl::PointCloud< pcl::PointXYZ>::Ptr EnvironmentMap::addPointsAccurate(const Poi
 		// Finally discard oldest cloud
 		mCloudHistory.pop_front();
 	}
-
+	*/
 	return _cloud;
 }
 
@@ -255,17 +256,23 @@ void EnvironmentMap::transformCloudtoTargetCloudAndAddToHistory(const PointCloud
 	//because we lose some points when rotating it to the map and voxeling there. That's why we rotate the original cloud
 	PointCloud<PointXYZ>::Ptr filtered_cloud = filter(_cloud);
 	PointCloud<PointXYZ> filtered_cloudWCS;
-	Matrix4f transformation = getTransformationBetweenPcs(*voxel(filtered_cloud), *_target, _guess);
-	transformPointCloud(*filtered_cloud, filtered_cloudWCS, transformation);
-	PointCloud<PointXYZ>::Ptr voxeledFiltered_cloudWCS = voxel(filtered_cloudWCS.makeShared());
+	Matrix4f transformation;
+	double score;
+	if (getTransformationBetweenPcs(*voxel(filtered_cloud), *_target, transformation, score, _guess)) {
+		transformPointCloud(*filtered_cloud, filtered_cloudWCS, transformation);
+		PointCloud<PointXYZ>::Ptr voxeledFiltered_cloudWCS = voxel(filtered_cloudWCS.makeShared());
 	
-	cout << "The filtered cloud has: " << filtered_cloudWCS.size() << "points" << endl;
-	cout << "The voxeled cloud has: " << voxeledFiltered_cloudWCS->size() << "points" << endl;
-	cout << "The guess of the transformation is" << endl << _guess << endl << "And the result is:"<< endl  << transformation << endl;
+		cout << "The filtered cloud has: " << filtered_cloudWCS.size() << "points" << endl;
+		cout << "The voxeled cloud has: " << voxeledFiltered_cloudWCS->size() << "points" << endl;
+		cout << "The guess of the transformation is" << endl << _guess << endl << "And the result is:"<< endl  << transformation << endl;
 
-	voxeledFiltered_cloudWCS->sensor_orientation_ = Quaternionf(transformation.block<3, 3>(0, 0));
-	voxeledFiltered_cloudWCS->sensor_origin_ = transformation.col(3);
-	mCloudHistory.push_back(voxeledFiltered_cloudWCS);
+		voxeledFiltered_cloudWCS->sensor_orientation_ = Quaternionf(transformation.block<3, 3>(0, 0));
+		voxeledFiltered_cloudWCS->sensor_origin_ = transformation.col(3);
+		mCloudHistory.push_back(voxeledFiltered_cloudWCS);
+	}
+	else {
+		cout << "ICP do not converge" << endl;
+	}
 }
 
 pcl::PointCloud<pcl::PointXYZ> EnvironmentMap::convoluteCloudsInQueue(std::deque<pcl::PointCloud<pcl::PointXYZ>::Ptr> _cloudQueue)
@@ -413,7 +420,7 @@ void EnvironmentMap::cropCloud(PointCloud<PointXYZ>::Ptr &_cloud, ModelCoefficie
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-Matrix4f EnvironmentMap::getTransformationBetweenPcs(const PointCloud<PointXYZ>& _newCloud, const PointCloud<PointXYZ>& _targetCloud, const Eigen::Matrix4f &_initialGuess, PointCloud<PointXYZ> &_alignedCloud) {
+bool EnvironmentMap::getTransformationBetweenPcs(const PointCloud<PointXYZ>& _newCloud, const PointCloud<PointXYZ>& _targetCloud, Eigen::Matrix4f &_transformation,  double &_score, const Eigen::Matrix4f &_initialGuess, PointCloud<PointXYZ> &_alignedCloud) {
 	BOViL::STime *timer = BOViL::STime::get();
 	double t;
 
@@ -423,11 +430,20 @@ Matrix4f EnvironmentMap::getTransformationBetweenPcs(const PointCloud<PointXYZ>&
 	double t0 = timer->getTime();
 	mPcJoiner.align(_alignedCloud, _initialGuess);
 	t = timer->getTime() - t0;
+	
+	_score =mPcJoiner.getFitnessScore();
+	_transformation = mPcJoiner.getFinalTransformation();
+
+	if (_transformation.hasNaN()) {
+		cerr << "---> CRITICAL ERROR! Transformation has nans!!! <---" << endl;
+		cv::waitKey();
+		exit(-1);
+	}
 
 	cout << "Time for alignment " << t << endl;
 	cout << "Fitness score " << mPcJoiner.getFitnessScore() << "   Has conveged? " << mPcJoiner.hasConverged() << endl;
 
-	return mPcJoiner.getFinalTransformation();
+	return mPcJoiner.hasConverged();
 }
 
 //---------------------------------------------------------------------------------------------------------------------
