@@ -432,18 +432,19 @@ bool EnvironmentMap::getTransformationBetweenPcs(const PointCloud<PointXYZ>& _ne
 	t = timer->getTime() - t0;
 	
 	_score =mPcJoiner.getFitnessScore();
+	bool hasConverged = mPcJoiner.hasConverged();
 	_transformation = mPcJoiner.getFinalTransformation();
 
 	if (_transformation.hasNaN()) {
 		cerr << "--> MAP:  ---> CRITICAL ERROR! Transformation has nans!!! <---" << endl;
-		cv::waitKey();
-		exit(-1);
+		//cv::waitKey();
+		//exit(-1);
 	}
 
 	cout << "--> MAP: Time for alignment " << t << endl;
 	cout << "--> MAP: Fitness score " << mPcJoiner.getFitnessScore() << "   Has conveged? " << mPcJoiner.hasConverged() << endl;
 
-	return mPcJoiner.hasConverged();
+	return hasConverged;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
