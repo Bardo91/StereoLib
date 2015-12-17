@@ -77,16 +77,16 @@ PointCloud<PointXYZ>::Ptr EnvironmentMap::filter(const PointCloud<PointXYZ>::Ptr
 
 //---------------------------------------------------------------------------------------------------------------------
 // you can only use one type of history calculation in the application, because they use the same members which need to be calculated correctly in previous steps
-bool EnvironmentMap::addPoints(const pcl::PointCloud< pcl::PointXYZ>::Ptr &_cloud, const Eigen::Vector4f &_translationPrediction, const Eigen::Quaternionf &_qRotationPrediction, enum eHistoryCalculation _calculation, pcl::PointCloud< pcl::PointXYZ>::Ptr &_addedCloud, double &_score){
+bool EnvironmentMap::addPoints(const pcl::PointCloud< pcl::PointXYZ>::Ptr &_cloud, const Eigen::Vector4f &_translationPrediction, const Eigen::Quaternionf &_qRotationPrediction, enum eHistoryCalculation _calculation, const double _maxFittingScore, pcl::PointCloud< pcl::PointXYZ>::Ptr &_addedCloud){
 	switch (_calculation) {
 		case eHistoryCalculation::Simple:
-			return addPointsSimple(_cloud, _translationPrediction, _qRotationPrediction, _addedCloud, _score);
+			return addPointsSimple(_cloud, _translationPrediction, _qRotationPrediction, _maxFittingScore, _addedCloud);
 			break;
 		case eHistoryCalculation::Accurate:
-			return addPointsAccurate(_cloud, _addedCloud, _score);
+			return addPointsAccurate(_cloud, _maxFittingScore, _addedCloud);
 			break;
 		case eHistoryCalculation::Sequential:
-			return addPointsSequential(_cloud, _addedCloud, _score);
+			return addPointsSequential(_cloud, _maxFittingScore, _addedCloud);
 			break;
 		default:
 			cout << "--> MAP: Wrong argument for addPoints()" << endl;
@@ -96,7 +96,7 @@ bool EnvironmentMap::addPoints(const pcl::PointCloud< pcl::PointXYZ>::Ptr &_clou
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-bool EnvironmentMap::addPointsSimple(const pcl::PointCloud<pcl::PointXYZ>::Ptr & _cloud, const Eigen::Vector4f &_translationPrediction, const Eigen::Quaternionf &_qRotationPrediction, pcl::PointCloud< pcl::PointXYZ>::Ptr &_addedCloud, double &_fittingScore) {
+bool EnvironmentMap::addPointsSimple(const pcl::PointCloud<pcl::PointXYZ>::Ptr & _cloud, const Eigen::Vector4f &_translationPrediction, const Eigen::Quaternionf &_qRotationPrediction, const double _maxFittingScore, pcl::PointCloud< pcl::PointXYZ>::Ptr &_addedCloud) {
 	_addedCloud = _cloud;
 	if (_cloud->size() < 10) {
 		std::cout << "--> MAP: addPointsSimple detects that cloud has less than 10 points, ignoring it" << std::endl;
@@ -116,7 +116,7 @@ bool EnvironmentMap::addPointsSimple(const pcl::PointCloud<pcl::PointXYZ>::Ptr &
 		// transform clouds to history until there are enough to make first map from history
 		else if (mCloudHistory.size() < mParams.historySize) {
 			printf("--> MAP: This is point cloud Nr. %d of %d needed for map.\n", mCloudHistory.size() + 1, mParams.historySize);
-			hasConverged = transformCloudtoTargetCloudAndAddToHistory(_cloud, mCloudHistory[0], transformationFromSensor(mCloudHistory.back()), _fittingScore);
+			hasConverged = transformCloudtoTargetCloudAndAddToHistory(_cloud, mCloudHistory[0], _maxFittingScore, transformationFromSensor(mCloudHistory.back()));
 		}
 	}
 	else {
@@ -126,7 +126,7 @@ bool EnvironmentMap::addPointsSimple(const pcl::PointCloud<pcl::PointXYZ>::Ptr &
 		guess.col(3) = _translationPrediction;
 		guess.block<3, 3>(0, 0) = _qRotationPrediction.matrix();
 
-		hasConverged = transformCloudtoTargetCloudAndAddToHistory(_cloud, mCloud.makeShared(), guess, _fittingScore);
+		hasConverged = transformCloudtoTargetCloudAndAddToHistory(_cloud, mCloud.makeShared(), _maxFittingScore, guess);
 	}
 
 	updateSensorPose(mCloudHistory.back()->sensor_origin_, mCloudHistory.back()->sensor_orientation_);
@@ -150,7 +150,7 @@ bool EnvironmentMap::addPointsSimple(const pcl::PointCloud<pcl::PointXYZ>::Ptr &
 	return hasConverged;
 }
 //---------------------------------------------------------------------------------------------------------------------
-bool EnvironmentMap::addPointsSequential(const PointCloud<PointXYZ>::Ptr & _cloud, pcl::PointCloud< pcl::PointXYZ>::Ptr &_addedCloud, double &_fittingScore) {
+bool EnvironmentMap::addPointsSequential(const PointCloud<PointXYZ>::Ptr & _cloud, const double _maxFittingScore, pcl::PointCloud< pcl::PointXYZ>::Ptr &_addedCloud) {
 	/*// Store First cloud as reference
 	// 666 we store the actual first cloud instead of considering history, this means we accept the noise from the first cloud
 	if (mCloud.size() == 0) {
@@ -191,7 +191,7 @@ bool EnvironmentMap::addPointsSequential(const PointCloud<PointXYZ>::Ptr & _clou
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-bool EnvironmentMap::addPointsAccurate(const PointCloud<PointXYZ>::Ptr & _cloud, pcl::PointCloud< pcl::PointXYZ>::Ptr &_addedCloud, double &_fittingScore) {
+bool EnvironmentMap::addPointsAccurate(const PointCloud<PointXYZ>::Ptr & _cloud,const double _maxFittingScore,  pcl::PointCloud< pcl::PointXYZ>::Ptr &_addedCloud) {
 	/*// Store First cloud as reference
 	// 666 we store the actual first cloud instead of considering history, this means we accept the noise from the first cloud
 	if (mCloud.size() == 0) {
@@ -253,7 +253,7 @@ PointCloud<PointXYZRGB>::Ptr colorizePointCloud2(const PointCloud<PointXYZ>::Ptr
 	return colorizedCloud;
 }
 
-bool EnvironmentMap::transformCloudtoTargetCloudAndAddToHistory(const PointCloud<PointXYZ>::Ptr & _cloud, const PointCloud<PointXYZ>::Ptr & _target, const Matrix4f &_guess, double &_score)
+bool EnvironmentMap::transformCloudtoTargetCloudAndAddToHistory(const PointCloud<PointXYZ>::Ptr & _cloud, const PointCloud<PointXYZ>::Ptr & _target, const double _maxFittingScore, const Matrix4f &_guess)
 {
 	if(_cloud->size() == 0)
 		return false;
@@ -264,7 +264,7 @@ bool EnvironmentMap::transformCloudtoTargetCloudAndAddToHistory(const PointCloud
 	PointCloud<PointXYZ> filtered_cloudWCS;
 	Matrix4f transformation;
 	
-	if (getTransformationBetweenPcs(*voxel(filtered_cloud), *_target, transformation, _score, _guess)) {
+	if (getTransformationBetweenPcs(*voxel(filtered_cloud), *_target, transformation, _maxFittingScore, _guess)) {
 		transformPointCloud(*filtered_cloud, filtered_cloudWCS, transformation);
 		PointCloud<PointXYZ>::Ptr voxeledFiltered_cloudWCS = voxel(filtered_cloudWCS.makeShared());
 	
@@ -278,7 +278,7 @@ bool EnvironmentMap::transformCloudtoTargetCloudAndAddToHistory(const PointCloud
 		return true;
 	}
 	else {
-		cout << "--> MAP: ICP do not converge" << endl;
+		cout << "--> MAP: ICP do not converge or score is to high" << endl;
 		return false;
 	}
 }
@@ -428,7 +428,7 @@ void EnvironmentMap::cropCloud(PointCloud<PointXYZ>::Ptr &_cloud, ModelCoefficie
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-bool EnvironmentMap::getTransformationBetweenPcs(const PointCloud<PointXYZ>& _newCloud, const PointCloud<PointXYZ>& _targetCloud, Eigen::Matrix4f &_transformation,  double &_score, const Eigen::Matrix4f &_initialGuess, PointCloud<PointXYZ> &_alignedCloud) {
+bool EnvironmentMap::getTransformationBetweenPcs(const PointCloud<PointXYZ>& _newCloud, const PointCloud<PointXYZ>& _targetCloud, Eigen::Matrix4f &_transformation,  const double _maxFittingScore, const Eigen::Matrix4f &_initialGuess, PointCloud<PointXYZ> &_alignedCloud) {
 	BOViL::STime *timer = BOViL::STime::get();
 	double t;
 
@@ -439,12 +439,12 @@ bool EnvironmentMap::getTransformationBetweenPcs(const PointCloud<PointXYZ>& _ne
 	mPcJoiner.align(_alignedCloud, _initialGuess);
 	t = timer->getTime() - t0;
 	
-	_score =mPcJoiner.getFitnessScore();
-	bool hasConverged = mPcJoiner.hasConverged();
+	bool hasConverged = mPcJoiner.hasConverged() || mPcJoiner.getFitnessScore() > _maxFittingScore;
 	_transformation = mPcJoiner.getFinalTransformation();
 
 	if (_transformation.hasNaN()) {
 		cerr << "--> MAP:  ---> CRITICAL ERROR! Transformation has nans!!! <---" << endl;
+		return false;
 		//cv::waitKey();
 		//exit(-1);
 	}

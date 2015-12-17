@@ -81,7 +81,7 @@ public:		// Public interface
 
 	/// Add points into internal cloud.
 	/// \param _cloud:
-	bool addPoints(const pcl::PointCloud< pcl::PointXYZ>::Ptr &_cloud, const Eigen::Vector4f &_translationPrediction, const Eigen::Quaternionf &_qRotationPrediction, enum eHistoryCalculation _calculation, pcl::PointCloud< pcl::PointXYZ>::Ptr &_addedCloud, double &_score);
+	bool addPoints(const pcl::PointCloud< pcl::PointXYZ>::Ptr &_cloud, const Eigen::Vector4f &_translationPrediction, const Eigen::Quaternionf &_qRotationPrediction, enum eHistoryCalculation _calculation, const double _maxFittingScore, pcl::PointCloud< pcl::PointXYZ>::Ptr &_addedCloud);
 
 	/// Cluster internal point cloud and returns vector with clusters
 	/// \return  
@@ -117,7 +117,7 @@ private:	// Private methods
 	bool getTransformationBetweenPcs(const pcl::PointCloud<pcl::PointXYZ> &_newCloud,
 		const pcl::PointCloud< pcl::PointXYZ> &_targetCloud, 
 		Eigen::Matrix4f &_transformation, 
-		double &_score,
+		const double _maxFittingScore,
 		const Eigen::Matrix4f &_initialGuess = Eigen::Matrix4f::Identity(),
 		pcl::PointCloud<pcl::PointXYZ> &_alignedCloud = pcl::PointCloud<pcl::PointXYZ>());
 	
@@ -143,10 +143,10 @@ private:	// Members
 	const double cMaxTranslation	= 5;			// 10 mm 
 
 	//history calculation options
-	bool addPointsSimple(const pcl::PointCloud<pcl::PointXYZ>::Ptr & _cloud, const Eigen::Vector4f &_translationPrediction, const Eigen::Quaternionf &_qRotationPrediction, pcl::PointCloud< pcl::PointXYZ>::Ptr &_addedCloud, double &_fittingScore);
-	bool addPointsSequential(const pcl::PointCloud<pcl::PointXYZ>::Ptr & _cloud, pcl::PointCloud< pcl::PointXYZ>::Ptr &_addedCloud, double &_fittingScore);
-	bool addPointsAccurate(const pcl::PointCloud<pcl::PointXYZ>::Ptr & _cloud, pcl::PointCloud< pcl::PointXYZ>::Ptr &_addedCloud, double &_fittingScore);
-	bool transformCloudtoTargetCloudAndAddToHistory(const pcl::PointCloud<pcl::PointXYZ>::Ptr & _cloud, const pcl::PointCloud<pcl::PointXYZ>::Ptr & _target, const Eigen::Matrix4f &_guess, double &_score);
+	bool addPointsSimple(const pcl::PointCloud<pcl::PointXYZ>::Ptr & _cloud, const Eigen::Vector4f &_translationPrediction, const Eigen::Quaternionf &_qRotationPrediction,const double _maxFittingScore, pcl::PointCloud< pcl::PointXYZ>::Ptr &_addedCloud);
+	bool addPointsSequential(const pcl::PointCloud<pcl::PointXYZ>::Ptr & _cloud, const double _maxFittingScore, pcl::PointCloud< pcl::PointXYZ>::Ptr &_addedCloud);
+	bool addPointsAccurate(const pcl::PointCloud<pcl::PointXYZ>::Ptr & _cloud, const double _maxFittingScore, pcl::PointCloud< pcl::PointXYZ>::Ptr &_addedCloud);
+	bool transformCloudtoTargetCloudAndAddToHistory(const pcl::PointCloud<pcl::PointXYZ>::Ptr & _cloud, const pcl::PointCloud<pcl::PointXYZ>::Ptr & _target, const double _maxFittingScore, const Eigen::Matrix4f &_guess);
 	pcl::PointCloud<pcl::PointXYZ> convoluteCloudsInQueue(std::deque<pcl::PointCloud<pcl::PointXYZ>::Ptr> _cloudQueue);
 	Eigen::Vector3f originInverse(const pcl::PointCloud<pcl::PointXYZ>::Ptr &_cloud);
 	Eigen::Quaternionf sensorInverse(const pcl::PointCloud<pcl::PointXYZ>::Ptr &_cloud);
