@@ -112,6 +112,7 @@ bool EnvironmentMap::addPointsSimple(const pcl::PointCloud<pcl::PointXYZ>::Ptr &
 			firstCloud->sensor_origin_ = Vector4f(0,0,0,1);
 			firstCloud->sensor_orientation_ = Quaternionf::Identity();
 			mCloudHistory.push_back(firstCloud);
+			hasConverged = true;
 		}
 		// transform clouds to history until there are enough to make first map from history
 		else if (mCloudHistory.size() < mParams.historySize) {
@@ -129,7 +130,9 @@ bool EnvironmentMap::addPointsSimple(const pcl::PointCloud<pcl::PointXYZ>::Ptr &
 		hasConverged = transformCloudtoTargetCloudAndAddToHistory(_cloud, mCloud.makeShared(), _maxFittingScore, guess);
 	}
 
-	updateSensorPose(mCloudHistory.back()->sensor_origin_, mCloudHistory.back()->sensor_orientation_);
+	if (hasConverged) {
+		updateSensorPose(mCloudHistory.back()->sensor_origin_, mCloudHistory.back()->sensor_orientation_);
+	}
 
 	if (mCloudHistory.size() >= mParams.historySize) {
 		cout << "--> MAP: Map extended" << endl;
