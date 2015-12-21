@@ -444,6 +444,36 @@ bool EnvironmentMap::getTransformationBetweenPcs(const PointCloud<PointXYZ>& _ne
 	mFittingScore = mPcJoiner.getFitnessScore();
 	
 	bool hasConverged = mPcJoiner.hasConverged() && mPcJoiner.getFitnessScore() < _maxFittingScore;
+	// if the fitting score is bad, we try similar poses to try to converge better
+	if (!hasConverged) {
+		float disp = 0.03;
+		vector<Transform<float, 3, Affine>> addtionalGuesses;
+			Eigen::Translation3f x(disp, 0.0, 0.0);
+			Eigen::Translation3f y(0.0, disp, 0.0);
+			Eigen::Translation3f z(0.0, 0.0, disp);
+			Transform<float, 3, Affine> newGuess = Transform<float, 3, Affine>(_initialGuess);// *x.inverse() * y.inverse() * z.inverse();
+		for (uint i = 0; i < 27; i++)
+			addtionalGuesses.push_back(newGuess);
+		for (uint i = 0; i < 9; i++) {
+			addtionalGuesses[i + 18] = addtionalGuesses[i + 18] * z * z;
+			addtionalGuesses[i + 9] = addtionalGuesses[i + 9] * z;
+			addtionalGuesses[i * 3 + 1] = addtionalGuesses[i * 3 + 1] * y;
+			addtionalGuesses[i * 3 + 2] = addtionalGuesses[i * 3 + 2] * y * y;
+		}
+		for (uint i = 0; i < 3; i++) {
+			for (uint j = 0; j < 3; j++) {
+				addtionalGuesses[i * 9 + j + 3] = addtionalGuesses[i * 9 + j + 3] * x;
+				addtionalGuesses[i * 9 + j + 6] = addtionalGuesses[i * 9 + j + 6] * x * x;
+			}
+		}
+
+		for (Transform<float, 3, Affine> tran : addtionalGuesses)
+			cout << tran.matrix() << endl;
+
+
+
+	}
+
 	_transformation = mPcJoiner.getFinalTransformation();
 
 	if (_transformation.hasNaN()) {
