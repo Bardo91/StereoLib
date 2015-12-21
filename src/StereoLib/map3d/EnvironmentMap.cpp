@@ -446,14 +446,16 @@ bool EnvironmentMap::getTransformationBetweenPcs(const PointCloud<PointXYZ>& _ne
 	bool hasConverged = mPcJoiner.hasConverged() && mPcJoiner.getFitnessScore() < _maxFittingScore;
 	// if the fitting score is bad, we try similar poses to try to converge better
 	if (!hasConverged) {
-		float disp = 0.03;
-		vector<Transform<float, 3, Affine>> addtionalGuesses;
+		float disp = 0.02;
+		Transform<float, 3, Affine> addtionalGuesses[27];
 			Eigen::Translation3f x(disp, 0.0, 0.0);
 			Eigen::Translation3f y(0.0, disp, 0.0);
 			Eigen::Translation3f z(0.0, 0.0, disp);
-			Transform<float, 3, Affine> newGuess = Transform<float, 3, Affine>(_initialGuess);// *x.inverse() * y.inverse() * z.inverse();
+			Transform<float,3,Affine> newGuess;
+			//newGuess = AngleAxisf(0.2, Vector3f::UnitX)*AngleAxisf(0.2, Vector3f::UnitY);
+			newGuess = Transform<float, 3, Affine>(_initialGuess) *x.inverse() * y.inverse() * z.inverse();
 		for (uint i = 0; i < 27; i++)
-			addtionalGuesses.push_back(newGuess);
+			addtionalGuesses[i] = newGuess;
 		for (uint i = 0; i < 9; i++) {
 			addtionalGuesses[i + 18] = addtionalGuesses[i + 18] * z * z;
 			addtionalGuesses[i + 9] = addtionalGuesses[i + 9] * z;
@@ -466,10 +468,31 @@ bool EnvironmentMap::getTransformationBetweenPcs(const PointCloud<PointXYZ>& _ne
 				addtionalGuesses[i * 9 + j + 6] = addtionalGuesses[i * 9 + j + 6] * x * x;
 			}
 		}
+		vector<double> results;
+		cout << "ori: 0 ";
+		for (Transform<float, 3, Affine> tran : addtionalGuesses) {
+			//cout << tran.matrix() << endl;
+			mPcJoiner.align(_alignedCloud, tran.matrix());
+			results.push_back(mPcJoiner.getFitnessScore());
+			cout << mPcJoiner.getFitnessScore() << ",";
+		}
+		cout << endl;
 
-		for (Transform<float, 3, Affine> tran : addtionalGuesses)
-			cout << tran.matrix() << endl;
+		//rotate around z
+		Quaternionf rot;
+		cout << "ori: 1";
+		rot = AngleAxisf(-2.0 / 180.0 * M_PI, Vector3f::UnitX());
 
+			for (Transform<float, 3, Affine> tran : addtionalGuesses) {
+				//cout << tran.matrix() << endl;
+				mPcJoiner.align(_alignedCloud, (tran*rot).matrix());
+				results.push_back(mPcJoiner.getFitnessScore());
+				cout << mPcJoiner.getFitnessScore() << ",";
+			}
+		cout << endl;
+
+
+		cout << "Best result is: " << *min_element(results.begin(),results.end()) << endl;
 
 
 	}
