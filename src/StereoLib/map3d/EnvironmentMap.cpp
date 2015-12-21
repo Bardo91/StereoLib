@@ -441,6 +441,7 @@ bool EnvironmentMap::getTransformationBetweenPcs(const PointCloud<PointXYZ>& _ne
 	double t0 = timer->getTime();
 	mPcJoiner.align(_alignedCloud, _initialGuess);
 	t = timer->getTime() - t0;
+	mFittingScore = mPcJoiner.getFitnessScore();
 	
 	bool hasConverged = mPcJoiner.hasConverged() && mPcJoiner.getFitnessScore() < _maxFittingScore;
 	_transformation = mPcJoiner.getFinalTransformation();

@@ -112,6 +112,8 @@ public:		// Public interface
 	Eigen::Matrix4f transformationFromSensor(const pcl::PointCloud<pcl::PointXYZ>::Ptr &_cloud);
 	
 	void updateSensorPose(const Eigen::Vector4f &_position, const Eigen::Quaternionf &_orientation);
+
+	double fittingScore() const { return mFittingScore; }
 private:	// Private methods
 	// Calculate transformation between two point cloud using ICP-NL algorithm.
 	bool getTransformationBetweenPcs(const pcl::PointCloud<pcl::PointXYZ> &_newCloud,
@@ -141,6 +143,7 @@ private:	// Members
 
 	const double cMaxAngle			= M_PI/180*1;	// 1º
 	const double cMaxTranslation	= 5;			// 10 mm 
+	double mFittingScore = 0;
 
 	//history calculation options
 	bool addPointsSimple(const pcl::PointCloud<pcl::PointXYZ>::Ptr & _cloud, const Eigen::Vector4f &_translationPrediction, const Eigen::Quaternionf &_qRotationPrediction,const double _maxFittingScore, pcl::PointCloud< pcl::PointXYZ>::Ptr &_addedCloud);
