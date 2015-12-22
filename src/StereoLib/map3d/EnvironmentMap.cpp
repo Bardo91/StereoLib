@@ -266,8 +266,18 @@ bool EnvironmentMap::transformCloudtoTargetCloudAndAddToHistory(const PointCloud
 	PointCloud<PointXYZ>::Ptr filtered_cloud = filter(_cloud);
 	PointCloud<PointXYZ> filtered_cloudWCS;
 	Matrix4f transformation;
+	bool hasConverged = getTransformationBetweenPcs(*voxel(filtered_cloud), *_target, transformation, _maxFittingScore, _guess);
+
+	Translation3f tran = Translation3f(_guess.block<3, 1>(0, 3) - transformation.block<3, 1>(0, 3));
+	float translationChange = tran.vector().norm();
+	Quaternionf rot = Quaternionf(_guess.block<3, 3>(0, 0));
+	float angleChange = rot.angularDistance(Quaternionf(transformation.block<3, 3>(0, 0))) * 180 / M_PI;
+	cout << "ICP result is different to our provided guess by a translation of: " << endl <<  translationChange << endl;
+	cout << "and a rotation of " << endl << angleChange << "deg" << endl;
+	float maxAngle = 2; //deg
+	float maxTran = 0.03; //meter
 	
-	if (getTransformationBetweenPcs(*voxel(filtered_cloud), *_target, transformation, _maxFittingScore, _guess)) {
+	if (hasConverged) {
 		transformPointCloud(*filtered_cloud, filtered_cloudWCS, transformation);
 		PointCloud<PointXYZ>::Ptr voxeledFiltered_cloudWCS = voxel(filtered_cloudWCS.makeShared());
 	
@@ -281,8 +291,29 @@ bool EnvironmentMap::transformCloudtoTargetCloudAndAddToHistory(const PointCloud
 		return true;
 	}
 	else {
-		cout << "--> MAP: ICP do not converge or score is to high" << endl;
+		cout << "--> MAP: ICP score is HIGH" << endl;
+		cout << "--> MAP: ICP result is different to our provided guess by a translation of: " << endl << translationChange << endl;
+		cout << "--> MAP: and a rotation of " << endl << angleChange << "deg" << endl;
+		if (angleChange < maxAngle && translationChange < maxTran) {
+			cout << "--> MAP: we will add the cloud becuase the translation and rotation seem good" << endl;
+			transformPointCloud(*filtered_cloud, filtered_cloudWCS, transformation);
+			PointCloud<PointXYZ>::Ptr voxeledFiltered_cloudWCS = voxel(filtered_cloudWCS.makeShared());
+
+			cout << "--> MAP: The filtered cloud has: " << filtered_cloudWCS.size() << "points" << endl;
+			cout << "--> MAP: The voxeled cloud has: " << voxeledFiltered_cloudWCS->size() << "points" << endl;
+			cout << "--> MAP: The guess of the transformation is" << endl << _guess << endl << "And the result is:" << endl << transformation << endl;
+
+			voxeledFiltered_cloudWCS->sensor_orientation_ = Quaternionf(transformation.block<3, 3>(0, 0));
+			voxeledFiltered_cloudWCS->sensor_origin_ = transformation.col(3);
+			mCloudHistory.push_back(voxeledFiltered_cloudWCS);
+			return true;
+		}
+		else {
+			cout << "--> MAP: ICP failed, we keep EKF pose" << endl;
 		return false;
+
+		}
+
 	}
 }
 
@@ -445,99 +476,6 @@ bool EnvironmentMap::getTransformationBetweenPcs(const PointCloud<PointXYZ>& _ne
 	
 	bool hasConverged = mPcJoiner.hasConverged() && mPcJoiner.getFitnessScore() < _maxFittingScore;
 	_transformation = mPcJoiner.getFinalTransformation();
-	// if the fitting score is bad, we try similar poses to try to converge better
-	if (!hasConverged) {
-		float disp = 0.01;
-		Transform<float, 3, Affine> addtionalGuesses[27];
-			Eigen::Translation3f x(disp, 0.0, 0.0);
-			Eigen::Translation3f y(0.0, disp, 0.0);
-			Eigen::Translation3f z(0.0, 0.0, disp);
-			cout << "initial guess: " << endl << _initialGuess << endl;
-			cout << "Bad result: " << endl << _transformation << endl;
-
-			Transform<float,3,Affine> newGuess;
-			//newGuess = AngleAxisf(0.2, Vector3f::UnitX)*AngleAxisf(0.2, Vector3f::UnitY);
-			newGuess = Transform<float, 3, Affine>(_initialGuess) *x.inverse() * y.inverse() * z.inverse();
-		for (uint i = 0; i < 27; i++)
-			addtionalGuesses[i] = newGuess;
-		for (uint i = 0; i < 9; i++) {
-			addtionalGuesses[i + 18] = addtionalGuesses[i + 18] * z * z;
-			addtionalGuesses[i + 9] = addtionalGuesses[i + 9] * z;
-			addtionalGuesses[i * 3 + 1] = addtionalGuesses[i * 3 + 1] * y;
-			addtionalGuesses[i * 3 + 2] = addtionalGuesses[i * 3 + 2] * y * y;
-		}
-		for (uint i = 0; i < 3; i++) {
-			for (uint j = 0; j < 3; j++) {
-				addtionalGuesses[i * 9 + j + 3] = addtionalGuesses[i * 9 + j + 3] * x;
-				addtionalGuesses[i * 9 + j + 6] = addtionalGuesses[i * 9 + j + 6] * x * x;
-			}
-		}
-
-		vector<double> results;
-		cout << "TRANSLATIONS " << endl;
-		for (Transform<float, 3, Affine> tran : addtionalGuesses) {
-			//cout << tran.matrix() << endl;
-			//mPcJoiner.initCompute();
-			mPcJoiner.align(_alignedCloud, tran.matrix());
-			double score = mPcJoiner.getFitnessScore();
-			results.push_back(score);
-			if (score < mFittingScore) {
-				mFittingScore = score;
-				_transformation = mPcJoiner.getFinalTransformation();
-				cout << "new better fit: " << score << endl << "guess:" << endl << tran.matrix() << endl << _transformation << endl;
-				hasConverged = true;
-			}
-		}
-
-		//rotate around z
-		cout << "ORIENTATIONS" << endl;
-		Quaternionf rot[27];
-		float ang = 1.0 / 180.0 * M_PI;
-		Quaternionf rotx(AngleAxisf(ang, Vector3f::UnitX()));
-		Quaternionf roty(AngleAxisf(ang, Vector3f::UnitY()));
-		Quaternionf rotz(AngleAxisf(ang, Vector3f::UnitZ()));
-
-		for (uint i = 0; i < 27; i++) {
-			rot[i] = rotx.inverse()*roty.inverse()*rotz.inverse();
-		}
-		for (uint i = 0; i < 9; i++) {
-			rot[i + 18] = rot[i + 18] * rotz * rotz;
-			rot[i + 9] = rot[i + 9] * rotz;
-		}
-		for (uint i = 0; i < 9; i++) {
-			rot[i * 3 + 1] = rot[i * 3 + 1] * roty;
-			rot[i * 3 + 2] = rot[i * 3 + 2] * roty * roty;
-		}
-		for (uint i = 0; i < 3; i++) {
-			for (uint j = 0; j < 3; j++) {
-				rot[i * 9 + j + 3] = rot[i * 9 + j + 3] * rotx;
-				rot[i * 9 + j + 6] = rot[i * 9 + j + 6] * rotx * rotx;
-			}
-		}
-
-		for (Quaternionf quat : rot) {
-			for (Transform<float, 3, Affine> tran : addtionalGuesses) {
-				//cout << tran.matrix() << endl;
-				mPcJoiner.align(_alignedCloud, (tran*quat).matrix());
-				double score = mPcJoiner.getFitnessScore();
-				results.push_back(score);
-				if (score < mFittingScore) {
-					_transformation = mPcJoiner.getFinalTransformation();
-					if (!_transformation.hasNaN()) {
-						mFittingScore = score;
-						cout << "new better fit: " << score << endl << "guess:" << endl << (tran*quat).matrix() << endl << _transformation << endl;
-						hasConverged = true;
-					}
-				}
-			}
-		}
-
-
-		cout << "Best result is: " << *min_element(results.begin(),results.end()) << endl;
-
-
-	}
-
 
 	if (_transformation.hasNaN()) {
 		cerr << "--> MAP:  ---> CRITICAL ERROR! Transformation has nans!!! <---" << endl;

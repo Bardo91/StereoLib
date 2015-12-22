@@ -113,6 +113,8 @@ public:		// Public interface
 	
 	void updateSensorPose(const Eigen::Vector4f &_position, const Eigen::Quaternionf &_orientation);
 
+	bool useICPresult() const { return mUseICPres; }
+	void useICPresult(bool _input) { mUseICPres = _input; }
 	double fittingScore() const { return mFittingScore; }
 private:	// Private methods
 	// Calculate transformation between two point cloud using ICP-NL algorithm.
@@ -129,6 +131,7 @@ private:	// Private methods
 	pcl::PointCloud<pcl::PointXYZ> convoluteCloudsOnGrid(const pcl::PointCloud<pcl::PointXYZ> &_cloud1, const pcl::PointCloud<pcl::PointXYZ> &_cloud2);
 
 	bool validTransformation(const Eigen::Matrix4f &_transformation, double _maxAngle, double _maxTranslation);
+
 	
 private:	// Members
 	Params	mParams;
@@ -144,6 +147,7 @@ private:	// Members
 	const double cMaxAngle			= M_PI/180*1;	// 1º
 	const double cMaxTranslation	= 5;			// 10 mm 
 	double mFittingScore = 0;
+	bool		mUseICPres = false;
 
 	//history calculation options
 	bool addPointsSimple(const pcl::PointCloud<pcl::PointXYZ>::Ptr & _cloud, const Eigen::Vector4f &_translationPrediction, const Eigen::Quaternionf &_qRotationPrediction,const double _maxFittingScore, pcl::PointCloud< pcl::PointXYZ>::Ptr &_addedCloud);
