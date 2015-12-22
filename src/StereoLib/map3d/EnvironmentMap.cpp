@@ -444,13 +444,17 @@ bool EnvironmentMap::getTransformationBetweenPcs(const PointCloud<PointXYZ>& _ne
 	mFittingScore = mPcJoiner.getFitnessScore();
 	
 	bool hasConverged = mPcJoiner.hasConverged() && mPcJoiner.getFitnessScore() < _maxFittingScore;
+	_transformation = mPcJoiner.getFinalTransformation();
 	// if the fitting score is bad, we try similar poses to try to converge better
 	if (!hasConverged) {
-		float disp = 0.02;
+		float disp = 0.01;
 		Transform<float, 3, Affine> addtionalGuesses[27];
 			Eigen::Translation3f x(disp, 0.0, 0.0);
 			Eigen::Translation3f y(0.0, disp, 0.0);
 			Eigen::Translation3f z(0.0, 0.0, disp);
+			cout << "initial guess: " << endl << _initialGuess << endl;
+			cout << "Bad result: " << endl << _transformation << endl;
+
 			Transform<float,3,Affine> newGuess;
 			//newGuess = AngleAxisf(0.2, Vector3f::UnitX)*AngleAxisf(0.2, Vector3f::UnitY);
 			newGuess = Transform<float, 3, Affine>(_initialGuess) *x.inverse() * y.inverse() * z.inverse();
@@ -468,28 +472,65 @@ bool EnvironmentMap::getTransformationBetweenPcs(const PointCloud<PointXYZ>& _ne
 				addtionalGuesses[i * 9 + j + 6] = addtionalGuesses[i * 9 + j + 6] * x * x;
 			}
 		}
+
 		vector<double> results;
-		cout << "ori: 0 ";
+		cout << "TRANSLATIONS " << endl;
 		for (Transform<float, 3, Affine> tran : addtionalGuesses) {
 			//cout << tran.matrix() << endl;
+			//mPcJoiner.initCompute();
 			mPcJoiner.align(_alignedCloud, tran.matrix());
-			results.push_back(mPcJoiner.getFitnessScore());
-			cout << mPcJoiner.getFitnessScore() << ",";
+			double score = mPcJoiner.getFitnessScore();
+			results.push_back(score);
+			if (score < mFittingScore) {
+				mFittingScore = score;
+				_transformation = mPcJoiner.getFinalTransformation();
+				cout << "new better fit: " << score << endl << "guess:" << endl << tran.matrix() << endl << _transformation << endl;
+				hasConverged = true;
+			}
 		}
-		cout << endl;
 
 		//rotate around z
-		Quaternionf rot;
-		cout << "ori: 1";
-		rot = AngleAxisf(-2.0 / 180.0 * M_PI, Vector3f::UnitX());
+		cout << "ORIENTATIONS" << endl;
+		Quaternionf rot[27];
+		float ang = 1.0 / 180.0 * M_PI;
+		Quaternionf rotx(AngleAxisf(ang, Vector3f::UnitX()));
+		Quaternionf roty(AngleAxisf(ang, Vector3f::UnitY()));
+		Quaternionf rotz(AngleAxisf(ang, Vector3f::UnitZ()));
 
+		for (uint i = 0; i < 27; i++) {
+			rot[i] = rotx.inverse()*roty.inverse()*rotz.inverse();
+		}
+		for (uint i = 0; i < 9; i++) {
+			rot[i + 18] = rot[i + 18] * rotz * rotz;
+			rot[i + 9] = rot[i + 9] * rotz;
+		}
+		for (uint i = 0; i < 9; i++) {
+			rot[i * 3 + 1] = rot[i * 3 + 1] * roty;
+			rot[i * 3 + 2] = rot[i * 3 + 2] * roty * roty;
+		}
+		for (uint i = 0; i < 3; i++) {
+			for (uint j = 0; j < 3; j++) {
+				rot[i * 9 + j + 3] = rot[i * 9 + j + 3] * rotx;
+				rot[i * 9 + j + 6] = rot[i * 9 + j + 6] * rotx * rotx;
+			}
+		}
+
+		for (Quaternionf quat : rot) {
 			for (Transform<float, 3, Affine> tran : addtionalGuesses) {
 				//cout << tran.matrix() << endl;
-				mPcJoiner.align(_alignedCloud, (tran*rot).matrix());
-				results.push_back(mPcJoiner.getFitnessScore());
-				cout << mPcJoiner.getFitnessScore() << ",";
+				mPcJoiner.align(_alignedCloud, (tran*quat).matrix());
+				double score = mPcJoiner.getFitnessScore();
+				results.push_back(score);
+				if (score < mFittingScore) {
+					_transformation = mPcJoiner.getFinalTransformation();
+					if (!_transformation.hasNaN()) {
+						mFittingScore = score;
+						cout << "new better fit: " << score << endl << "guess:" << endl << (tran*quat).matrix() << endl << _transformation << endl;
+						hasConverged = true;
+					}
+				}
 			}
-		cout << endl;
+		}
 
 
 		cout << "Best result is: " << *min_element(results.begin(),results.end()) << endl;
@@ -497,7 +538,6 @@ bool EnvironmentMap::getTransformationBetweenPcs(const PointCloud<PointXYZ>& _ne
 
 	}
 
-	_transformation = mPcJoiner.getFinalTransformation();
 
 	if (_transformation.hasNaN()) {
 		cerr << "--> MAP:  ---> CRITICAL ERROR! Transformation has nans!!! <---" << endl;
