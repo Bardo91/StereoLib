@@ -61,7 +61,7 @@ public:
 	/// \param _frame1: first image of stereo pair
 	/// \param _frame2: second image of stereo pair
 	/// \return array of 3d points
-	pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloud(const cv::Mat &_frame1, const cv::Mat &_frame2, std::pair<int, int> _disparityRange, int _squareSize, int _maxReprojectionError);
+	pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloud(const cv::Mat &_frame1, const cv::Mat &_frame2, std::pair<int, int> _disparityRange, int _squareSize, double _maxTemplateScore, int _maxReprojectionError);
 
 	/// Project 3d points into 2d world of the camera using global coordinates.
 	std::vector<cv::Point2f> project3dPoints(const std::vector<cv::Point3f> &_points, bool _isLeftCamera, const Eigen::Vector4f &_position, const Eigen::Quaternionf &_orientation);

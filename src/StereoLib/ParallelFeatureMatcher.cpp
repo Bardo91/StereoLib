@@ -15,10 +15,11 @@ ParallelFeatureMatcher::ParallelFeatureMatcher(const Mat &_frame1, const Mat &_f
 	const vector<Point2i> &_kps,
 	const vector<Vec3f> &_epis,
 	const pair<int, int> &_disparityRange,
-	const int &_squareSize,
+	const int &_squareSize, 
+	const double &_maxTemplateScore,
 	vector<vector<Point2i>> &_points1, vector<vector<Point2i>> &_points2,
 	Rect _vl, Rect _vr) :	frame1(_frame1), frame2(_frame2), kps(_kps), epis(_epis), disparityRange(_disparityRange), 
-	squareSize(_squareSize), points1(_points1), points2(_points2), validLeft(_vl), validRight(_vr) {};
+	squareSize(_squareSize), maxTemplateScore(_maxTemplateScore), points1(_points1), points2(_points2), validLeft(_vl), validRight(_vr) {};
 
 //---------------------------------------------------------------------------------------------------------------------
 void ParallelFeatureMatcher::operator()(const cv::Range& range) const{
@@ -48,8 +49,9 @@ cv::Point2i ParallelFeatureMatcher::findMatch(const Mat &_frame1, const Mat &_fr
 	// Get template from first image.
 	Mat imgTemplate = _frame1(Rect(	Point2i(_point.x - _squareSize/2, _point.y - _squareSize/2),
 		Point2i(_point.x + _squareSize/2, _point.y + _squareSize/2)));
-	double minVal = _squareSize*_squareSize*255*255;
-	Point2i maxLoc(-1,-1), p1;
+	const double cMaxDiff = _squareSize*_squareSize*255*255;
+	double minVal = cMaxDiff;
+	Point2i minLoc(-1,-1), p1;
 	Mat subImage;
 
 	int minX = _point.x - _disparityRange.second;
@@ -80,9 +82,15 @@ cv::Point2i ParallelFeatureMatcher::findMatch(const Mat &_frame1, const Mat &_fr
 		}
 		if(val < minVal){
 			minVal = val;
-			maxLoc = p1;
+			minLoc = p1;
 		}
 	}
 
-	return maxLoc;
+	if ((minVal/cMaxDiff) < maxTemplateScore) {
+		return minLoc;
+	}
+	else {
+		return Point2i(-1,-1);
+	}
+
 }

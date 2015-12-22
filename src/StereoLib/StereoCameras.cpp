@@ -109,7 +109,7 @@ cv::Rect StereoCameras::roi(bool _isLeft) {
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-PointCloud<PointXYZ>::Ptr StereoCameras::pointCloud(const cv::Mat &_frame1, const cv::Mat &_frame2, pair<int, int> _disparityRange, int _squareSize, int _maxReprojectionError) {
+PointCloud<PointXYZ>::Ptr StereoCameras::pointCloud(const cv::Mat &_frame1, const cv::Mat &_frame2, pair<int, int> _disparityRange, int _squareSize, double _maxTemplateScore, int _maxReprojectionError) {
 	// Compute keypoint only in first image
 	vector<Point2i> keypoints;
 	computeFeatures(_frame1, keypoints);
@@ -133,7 +133,7 @@ PointCloud<PointXYZ>::Ptr StereoCameras::pointCloud(const cv::Mat &_frame1, cons
 	vector<vector<Point2i>> vpoints1(cNumProcs), vpoints2(cNumProcs);
 
 	// Match features using ParallelFeatureMatcher Class
-	parallel_for_(Range(0,cNumProcs), ParallelFeatureMatcher(_frame1, _frame2, keypoints, epilines, _disparityRange, _squareSize, vpoints1, vpoints2, validLeft, validRight));
+	parallel_for_(Range(0,cNumProcs), ParallelFeatureMatcher(_frame1, _frame2, keypoints, epilines, _disparityRange, _squareSize,_maxTemplateScore, vpoints1, vpoints2, validLeft, validRight));
 
 	vector<Point2i> points1, points2;
 

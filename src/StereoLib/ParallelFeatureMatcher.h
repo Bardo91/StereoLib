@@ -13,7 +13,12 @@
 
 class ParallelFeatureMatcher: public cv::ParallelLoopBody{
 public:
-	ParallelFeatureMatcher(const cv::Mat &_frame1, const cv::Mat &_frame2, const std::vector<cv::Point2i> &_kps, const std::vector<cv::Vec3f> &_epis, const std::pair<int, int> &_disparityRange, const int &_squareSize, std::vector<std::vector<cv::Point2i>> &_points1, std::vector<std::vector<cv::Point2i>> &_points2, cv::Rect _vl, cv::Rect _vr);
+	ParallelFeatureMatcher(	const cv::Mat &_frame1, const cv::Mat &_frame2, 
+							const std::vector<cv::Point2i> &_kps, const std::vector<cv::Vec3f> &_epis, 
+							const std::pair<int, int> &_disparityRange, 
+							const int &_squareSize, const double &_maxTemplateScore,
+							std::vector<std::vector<cv::Point2i>> &_points1, std::vector<std::vector<cv::Point2i>> &_points2, 
+							cv::Rect _vl, cv::Rect _vr);
 	virtual void operator()(const cv::Range& range) const;
 
 private:
@@ -25,6 +30,7 @@ private:
 	const std::vector<cv::Vec3f> &epis;
 	const std::pair<int, int> &disparityRange;
 	const int &squareSize;
+	const double &maxTemplateScore;
 	std::vector<std::vector<cv::Point2i>> &points1;
 	std::vector<std::vector<cv::Point2i>> &points2;
 	cv::Rect validLeft;
