@@ -19,13 +19,27 @@ StereoCameras::StereoCameras(unsigned _indexCamera1, unsigned _indexCamera2): mC
 StereoCameras::StereoCameras(string _pattern1, string _pattern2): mCamera1(_pattern1), mCamera2(_pattern2) {
 }
 
-//---------------------------------------------------------------------------------------------------------------------
+
 void StereoCameras::calibrate(const vector<Mat> &_calibrationImages1, const vector<Mat> &_calibrationImages2, Size _boardSize, float _squareSize) {
 	vector<vector<Point2f>> imagePoints1, imagePoints2;
 
 	mCamera1.calibrate(_calibrationImages1, _boardSize, _squareSize, imagePoints1);
 	mCamera2.calibrate(_calibrationImages2, _boardSize, _squareSize, imagePoints2);
 
+	for (int i = 0; i < _calibrationImages1.size(); i++) {
+		Mat i1 = _calibrationImages1[i];
+		Mat i2 = _calibrationImages2[i];
+
+		drawChessboardCorners(i1, Size(7,11), imagePoints1[i], imagePoints1[i].size() != 0);
+		drawChessboardCorners(i2, Size(7,11), imagePoints2[i], imagePoints2[i].size() != 0);
+
+		hconcat(i1,i2,i1);
+
+		putText(i1, "Image: " +to_string(i), Point2i(50,50), FONT_HERSHEY_PLAIN, 2, Scalar(0,0,255) );
+		imshow("StereoCalibration", i1);
+		waitKey();
+
+	}
 	calibrateStereo(imagePoints1, imagePoints2, _calibrationImages1[0].size(), _boardSize, _squareSize);
 	mCalibrated = true;
 }

@@ -18,9 +18,9 @@ bool Camera::calibrate(const vector<Mat> &_arrayFrames, Size _boardSize, float _
 		vector<Point2f> pointBuf;
 		Mat frameGray;
 		cvtColor(frame, frameGray, COLOR_BGR2GRAY);
-		bool found = findChessboardCorners( frame, _boardSize, pointBuf, CALIB_CB_ADAPTIVE_THRESH | CALIB_CB_FAST_CHECK | CALIB_CB_NORMALIZE_IMAGE);
+		bool found = findChessboardCorners( frameGray, _boardSize, pointBuf, CALIB_CB_ADAPTIVE_THRESH);
 		if (found) {
-			cornerSubPix(frameGray, pointBuf, Size(11, 11), Size(-1, -1), TermCriteria(TermCriteria::EPS + TermCriteria::COUNT, 30, 0.1));
+			cornerSubPix(frameGray, pointBuf, Size(7, 7), Size(-1, -1), TermCriteria(TermCriteria::EPS + TermCriteria::COUNT, 30, 0.1));
 			_imagePoints.push_back(pointBuf);
 		}
 		else {
