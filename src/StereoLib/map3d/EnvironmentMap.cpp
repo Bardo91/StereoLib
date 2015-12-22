@@ -446,6 +446,57 @@ bool EnvironmentMap::getTransformationBetweenPcs(const PointCloud<PointXYZ>& _ne
 	bool hasConverged = mPcJoiner.hasConverged() && mPcJoiner.getFitnessScore() < _maxFittingScore;
 	_transformation = mPcJoiner.getFinalTransformation();
 
+	if (mFittingScore > _maxFittingScore) {
+		const double incPos = 0.005;
+		const double incRots = 2 * M_PI/180;
+		// Search on close points
+		vector<Vector3f>	candidatePoints;
+		vector<Quaternionf> candidateOrientations(9);
+
+		// Fill candidate lists
+		for (int i = 0; i < 3; i++) {
+			for (int j = -1; j < 2; j++) {
+				Vector3f p = Vector3f::Zero();
+				p(i) = j;
+				candidatePoints.push_back(p);
+			}
+		}
+
+		vector<std::function<Quaternionf (double)>> rotationsFuncs = { 
+							[](double _angle) { return Quaternionf(AngleAxisf(_angle, Vector3f::UnitX()));},
+							[](double _angle) { return Quaternionf(AngleAxisf(_angle, Vector3f::UnitY()));},
+							[](double _angle) { return Quaternionf(AngleAxisf(_angle, Vector3f::UnitZ()));} };
+
+		Quaternionf q0 = Quaternionf(_initialGuess.block<3,3>(0,0));
+		for (int i = 0; i < 3; i++) {
+			for (int j = -1; j < 2; j++) {
+				candidateOrientations[i*3+(j+1)] =(rotationsFuncs[i](j*incRots)*q0);
+			}
+		}
+
+
+		// Calculate best match
+		auto initialGuess = Transform<float,3,Affine>(_initialGuess);
+		vector<double> scores;
+		vector<pair<int, int>> indexes;
+		for (unsigned i = 0; i < candidatePoints.size();i++){
+			for (unsigned j = 0; j < candidateOrientations.size(); j++) {
+				auto translation = Translation3f(candidatePoints[i]);
+				auto rotation = Transform<float,3,Affine>(candidateOrientations[j]);
+				mPcJoiner.align(_alignedCloud, (rotation*translation*initialGuess).matrix());
+				scores.push_back(mPcJoiner.getFitnessScore());
+				indexes.push_back(pair<unsigned,unsigned>(i,j));
+			}
+		}
+
+		unsigned maxIndex = std::max_element(scores.begin(), scores.end()) - scores.begin();
+
+		_transformation =	(Transform<float,3,Affine>(candidateOrientations[indexes[maxIndex].first])*
+							Translation3f(candidatePoints[indexes[maxIndex].second])*
+							initialGuess).matrix();
+	}
+
+
 	if (_transformation.hasNaN()) {
 		cerr << "--> MAP:  ---> CRITICAL ERROR! Transformation has nans!!! <---" << endl;
 		return false;
