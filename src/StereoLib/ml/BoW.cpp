@@ -33,14 +33,22 @@ Json BoW::params() const{
 void BoW::train(const vector<Mat> &_images, const vector<double> &_groundTruth){
 	// Get all descriptors to form vocabulary.
 	vector<vector<double>> X;
+	vector<double> gt;
 	if (mDetecetorType == eDetector::SIFT || mDetecetorType == eDetector::SURF) {
 		// Form codebook from all descriptors
 		Mat descriptorsAll;
 		vector<Mat> descriptorPerImg;
 		for (unsigned i = 0; i < _images.size(); i++) {	// For each image in dataset
-			Mat descriptors = computeDescriptor(_images[i]);
-			descriptorsAll.push_back(descriptors);
-			descriptorPerImg.push_back(descriptors);
+			double scaleFactor = 1;
+			for (unsigned i = 0; i < int(mParams["multiscale"]["nScales"]); i++) {
+				Mat trainImg;
+				resize(_images[i], trainImg, Size(), scaleFactor, scaleFactor);
+				Mat descriptors = computeDescriptor(trainImg);
+				descriptorsAll.push_back(descriptors);
+				descriptorPerImg.push_back(descriptors);
+				gt.push_back(_groundTruth[i]);
+				scaleFactor *= float(mParams["multiscale"]["scaleFactor"]);
+			}
 		}
 		mCodebook = mBowTrainer->cluster(descriptorsAll);
 		mHistogramExtractor->setVocabulary(mCodebook);
@@ -68,7 +76,7 @@ void BoW::train(const vector<Mat> &_images, const vector<double> &_groundTruth){
 	}
 
 	TrainSet set;
-	set.addEntries(X, _groundTruth);
+	set.addEntries(X, gt);
 	X.clear();
 	
 	if (mAutoTrain) {
