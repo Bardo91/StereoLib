@@ -12,12 +12,12 @@ using namespace cv;
 
 //---------------------------------------------------------------------------------------------------------------------
 ParallelFeatureMatcher::ParallelFeatureMatcher(const Mat &_frame1, const Mat &_frame2,
-	const vector<Point2i> &_kps,
+	const vector<KeyPoint> &_kps,
 	const vector<Vec3f> &_epis,
 	const pair<int, int> &_disparityRange,
 	const int &_squareSize, 
 	const double &_maxTemplateScore,
-	vector<vector<Point2i>> &_points1, vector<vector<Point2i>> &_points2,
+	vector<vector<KeyPoint>> &_points1, vector<vector<KeyPoint>> &_points2,
 	Rect _vl, Rect _vr) :	frame1(_frame1), frame2(_frame2), kps(_kps), epis(_epis), disparityRange(_disparityRange), 
 	squareSize(_squareSize), maxTemplateScore(_maxTemplateScore), points1(_points1), points2(_points2), validLeft(_vl), validRight(_vr) {};
 
@@ -28,16 +28,18 @@ void ParallelFeatureMatcher::operator()(const cv::Range& range) const{
 
 	for (int i = ini; i < end; i++){
 		//std::cout << "Computing: " << i << std::endl;
-		if(!validLeft.contains(kps[i]))	// Ignore keypoint if it is outside valid region.
+		if(!validLeft.contains(kps[i].pt))	// Ignore keypoint if it is outside valid region.
 			continue;
 
 		// Calculate matching and add points
-		Point2i matchedPoint = findMatch(frame1, frame2, kps[i], epis[i], disparityRange, squareSize);
+		Point2i matchedPoint = findMatch(frame1, frame2, kps[i].pt, epis[i], disparityRange, squareSize);
 		if(!validRight.contains(matchedPoint))
 			continue;
 
 		points1[range.start].push_back(kps[i]);
-		points2[range.start].push_back(matchedPoint);
+		KeyPoint kp;
+		kp.pt = matchedPoint;
+		points2[range.start].push_back(kp);
 	}
 }
 

@@ -111,7 +111,7 @@ cv::Rect StereoCameras::roi(bool _isLeft) {
 //---------------------------------------------------------------------------------------------------------------------
 PointCloud<PointXYZ>::Ptr StereoCameras::pointCloud(const cv::Mat &_frame1, const cv::Mat &_frame2, pair<int, int> _disparityRange, int _squareSize, double _maxTemplateScore, int _maxReprojectionError) {
 	// Compute keypoint only in first image
-	vector<Point2i> keypoints;
+	vector<KeyPoint> keypoints;
 	computeFeatures(_frame1, keypoints);
 
 	std::cout << "--> STEREO: Features computed in frame1: " << keypoints.size() << std::endl;
@@ -130,18 +130,18 @@ PointCloud<PointXYZ>::Ptr StereoCameras::pointCloud(const cv::Mat &_frame1, cons
 
 
 	const unsigned cNumProcs = 8;
-	vector<vector<Point2i>> vpoints1(cNumProcs), vpoints2(cNumProcs);
+	vector<vector<KeyPoint>> vpoints1(cNumProcs), vpoints2(cNumProcs);
 
 	// Match features using ParallelFeatureMatcher Class
 	parallel_for_(Range(0,cNumProcs), ParallelFeatureMatcher(_frame1, _frame2, keypoints, epilines, _disparityRange, _squareSize,_maxTemplateScore, vpoints1, vpoints2, validLeft, validRight));
 
-	vector<Point2i> points1, points2;
+	vector<KeyPoint> points1, points2;
 
-	for (vector<Point2i> v : vpoints1) {
+	for (vector<KeyPoint> v : vpoints1) {
 		points1.insert(points1.end(), v.begin(), v.end());
 	}
 
-	for (vector<Point2i> v : vpoints2) {
+	for (vector<KeyPoint> v : vpoints2) {
 		points2.insert(points2.end(), v.begin(), v.end());
 	}
 
@@ -287,26 +287,37 @@ void StereoCameras::calibrateStereo(const vector<vector<Point2f>> &_imagePoints1
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void StereoCameras::computeFeatures(const Mat &_frame, vector<Point2i> &_features){
-	goodFeaturesToTrack(_frame, _features, 5000, 0.001,0.5);
+void StereoCameras::computeFeatures(const Mat &_frame, vector<KeyPoint> &_features){
+
+	vector<Point2i> points;
+	goodFeaturesToTrack(_frame, points, 5000, 0.001,0.5);
+	for (Point2i pt : points) {
+		KeyPoint kp;
+		kp.pt = pt;
+		_features.push_back(kp);
+	}
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void StereoCameras::computeEpipoarLines(const vector<Point2i> &_points, vector<Vec3f> &_epilines){
-	computeCorrespondEpilines(_points, 1, fundamentalMatrix(), _epilines);
+void StereoCameras::computeEpipoarLines(const vector<KeyPoint> &_points, vector<Vec3f> &_epilines){
+	vector<Point2i> points;
+	for (KeyPoint kp : _points) {
+		points.push_back(kp.pt);
+	}
+	computeCorrespondEpilines(points, 1, fundamentalMatrix(), _epilines);
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-vector<Point3f> StereoCameras::triangulate(const vector<Point2i> &_points1, const vector<Point2i> &_points2) {
+vector<Point3f> StereoCameras::triangulate(const vector<KeyPoint> &_points1, const vector<KeyPoint> &_points2) {
 	Mat pnts3D	(4,_points1.size(),CV_64F);
 	Mat cam1pnts(2,_points1.size(),CV_64F);
 	Mat cam2pnts(2,_points1.size(),CV_64F);
 
 	for (unsigned i = 0; i < _points1.size(); i++) {
-		cam1pnts.at<double>(0,i) = _points1[i].x;
-		cam1pnts.at<double>(1,i) = _points1[i].y;
-		cam2pnts.at<double>(0,i) = _points2[i].x;
-		cam2pnts.at<double>(1,i) = _points2[i].y;
+		cam1pnts.at<double>(0,i) = _points1[i].pt.x;
+		cam1pnts.at<double>(1,i) = _points1[i].pt.y;
+		cam2pnts.at<double>(0,i) = _points2[i].pt.x;
+		cam2pnts.at<double>(1,i) = _points2[i].pt.y;
 	}
 
 	Mat I = Mat::eye(3,4, CV_64F);
@@ -329,17 +340,17 @@ vector<Point3f> StereoCameras::triangulate(const vector<Point2i> &_points1, cons
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-vector<Point3f> StereoCameras::filterPoints(const Mat &_frame1, const Mat &_frame2, const vector<Point2i> &_points1, const vector<Point2i> &_points2, const vector<Point3f> &_points3d, int _maxReprojectionError){
+vector<Point3f> StereoCameras::filterPoints(const Mat &_frame1, const Mat &_frame2, const vector<KeyPoint> &_points1, const vector<KeyPoint> &_points2, const vector<Point3f> &_points3d, int _maxReprojectionError){
 	vector<Point2f> reprojection1, reprojection2;
 	projectPoints(_points3d, Mat::eye(3, 3, CV_64F), Mat::zeros(3, 1, CV_64F), mCamera1.matrix(), mCamera1.distCoeffs(), reprojection1);
 	projectPoints(_points3d, rotation(), translation(), mCamera2.matrix(), mCamera2.distCoeffs(), reprojection2);
 
 	vector<Point3f> filteredPoints3d;
 	for (unsigned i = 0; i < _points3d.size(); i++) {
-		double rError1 = sqrt(pow(reprojection1[i].x - _points1[i].x, 2)
-							+ pow(reprojection1[i].y - _points1[i].y, 2));
-		double rError2 = sqrt(pow(reprojection2[i].x - _points2[i].x, 2)
-							+ pow(reprojection2[i].y - _points2[i].y, 2));
+		double rError1 = sqrt(pow(reprojection1[i].x - _points1[i].pt.x, 2)
+							+ pow(reprojection1[i].y - _points1[i].pt.y, 2));
+		double rError2 = sqrt(pow(reprojection2[i].x - _points2[i].pt.x, 2)
+							+ pow(reprojection2[i].y - _points2[i].pt.y, 2));
 
 		if (rError1 < _maxReprojectionError && rError2 < _maxReprojectionError) {
 			filteredPoints3d.push_back(_points3d[i]);

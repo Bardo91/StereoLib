@@ -105,12 +105,12 @@ public:
 private:
 	void calibrateStereo(const std::vector<std::vector<cv::Point2f>> &_imagePoints1, const std::vector<std::vector<cv::Point2f>> &_imagePoints2, cv::Size _imageSize, cv::Size _boardSize, float _squareSize);
 
-	void computeFeatures(const cv::Mat &_frame, std::vector<cv::Point2i> &_features);
-	void computeEpipoarLines(const std::vector<cv::Point2i> &_points, std::vector<cv::Vec3f> &_epilines);
+	void computeFeatures(const cv::Mat &_frame, std::vector<cv::KeyPoint> &_features);
+	void computeEpipoarLines(const std::vector<cv::KeyPoint> &_points, std::vector<cv::Vec3f> &_epilines);
 
-	std::vector<cv::Point3f> triangulate(const std::vector<cv::Point2i> &_points1, const std::vector<cv::Point2i> &_points2);
+	std::vector<cv::Point3f> triangulate(const std::vector<cv::KeyPoint> &_points1, const std::vector<cv::KeyPoint> &_points2);
 
-	std::vector<cv::Point3f> filterPoints(const cv::Mat &_frame1, const cv::Mat &_frame2, const std::vector<cv::Point2i> &_points1, const std::vector<cv::Point2i> &_points2, const std::vector<cv::Point3f> &_points3d, int _maxReprojectionError);
+	std::vector<cv::Point3f> filterPoints(const cv::Mat &_frame1, const cv::Mat &_frame2, const std::vector<cv::KeyPoint> &_points1, const std::vector<cv::KeyPoint> &_points2, const std::vector<cv::Point3f> &_points3d, int _maxReprojectionError);
 
 private:
 	Camera mCamera1, mCamera2;
