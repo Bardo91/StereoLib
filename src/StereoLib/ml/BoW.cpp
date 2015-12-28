@@ -40,7 +40,7 @@ void BoW::train(const vector<Mat> &_images, const vector<double> &_groundTruth){
 		vector<Mat> descriptorPerImg;
 		for (unsigned i = 0; i < _images.size(); i++) {	// For each image in dataset
 			double scaleFactor = 1;
-			for (unsigned i = 0; i < int(mParams["multiscale"]["nScales"]); i++) {
+			for (unsigned j = 0; j < int(mParams["multiscale"]["nScales"]); j++) {
 				Mat trainImg;
 				resize(_images[i], trainImg, Size(), scaleFactor, scaleFactor);
 				Mat descriptors = computeDescriptor(trainImg);
@@ -54,7 +54,7 @@ void BoW::train(const vector<Mat> &_images, const vector<double> &_groundTruth){
 		mHistogramExtractor->setVocabulary(mCodebook);
 
 		// Compute histograms
-		for (unsigned i = 0; i < _images.size(); i++) {
+		for (unsigned i = 0; i < descriptorPerImg.size(); i++) {
 			Mat histogram;
 			mHistogramExtractor->compute(descriptorPerImg[i], histogram);
 			vector<double> x;
@@ -142,7 +142,7 @@ void BoW::defaultParams() {
 	mSvmParams.eps = 1e-5;
 	mSvmParams.p = 0.1;
 	mSvmParams.shrinking = 0;
-	mSvmParams.probability = 1;
+	mSvmParams.probability = 0;
 	mSvmParams.nr_weight = 0;
 	mSvmParams.weight_label = nullptr;
 	mSvmParams.weight = nullptr;
