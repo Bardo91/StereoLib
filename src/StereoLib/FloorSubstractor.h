@@ -18,7 +18,7 @@ public:
 
 	bool isTrained() { return mIsTrained; };
 
-private:
+protected:
 	bool mIsTrained = false;
 };
 

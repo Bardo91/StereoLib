@@ -14,7 +14,8 @@ using namespace BOViL;
 
 //---------------------------------------------------------------------------------------------------------------------
 bool FloorSubstractorCCS::train(const std::vector<cv::Mat>& _images) {
-	return false;
+	mIsTrained = true;
+	return true;
 }
 
 
