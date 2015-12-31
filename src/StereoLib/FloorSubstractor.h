@@ -14,7 +14,7 @@ class FloorSubstractor {
 public:
 	virtual bool train			(const std::vector<cv::Mat> &_images)	= 0;
 
-	virtual bool substract		(const cv::Mat &_in, cv::Mat &_out)		= 0;
+	virtual bool substract		(const cv::Mat &_in, cv::Mat &_out, cv::Mat &_mask = cv::Mat())		= 0;
 
 	bool isTrained() { return mIsTrained; };
 

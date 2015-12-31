@@ -1,3 +1,4 @@
+#include "ObjectCandidate.h"
 //
 //
 //
@@ -56,6 +57,10 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr ObjectCandidate::cloud() const {
 
 Eigen::Vector4f ObjectCandidate::centroid() const{
 	return mCentroid;
+}
+
+std::vector<cv::Mat> ObjectCandidate::views() const {
+	return mViewHistory;
 }
 
 //---------------------------------------------------------------------------------------------------------------------

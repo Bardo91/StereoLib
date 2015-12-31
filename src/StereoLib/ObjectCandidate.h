@@ -30,6 +30,9 @@ public:
 	/// Get centroid
 	Eigen::Vector4f centroid() const;
 
+	/// Get views
+	std::vector<cv::Mat> views() const;
+
 	unsigned R() const;
 	unsigned G() const;
 	unsigned B() const;
