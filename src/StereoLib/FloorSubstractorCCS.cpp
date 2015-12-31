@@ -70,34 +70,19 @@ bool FloorSubstractorCCS::train(const std::vector<cv::Mat>& _images) {
 		meanF[0] += means[i][0] * size;
 		meanF[1] += means[i][1] * size;
 		meanF[2] += means[i][2] * size;
+								  
+		devF[0] += vars[i][0] * size;
+		devF[1] += vars[i][1] * size;
+		devF[2] += vars[i][2] * size;
 	}
 
 	meanF[0] /= totalSize;
 	meanF[1] /= totalSize;
 	meanF[2] /= totalSize;
 
-
-	std::vector<array<double, 3>> ESSs, TGSSs;
-	for (unsigned i = 0; i < means.size(); i++) {
-		double size = _images[i].rows*_images[i].cols;
-
-		ESSs.push_back({ vars[i][0] * (size - 1), vars[i][1] * (size - 1), vars[i][2] * (size - 1) });
-		TGSSs.push_back({ pow(means[i][0] - meanF[0],2)*size ,pow(means[i][1] - meanF[1],2)*size ,pow(means[i][2] - meanF[2],2)*size });
-	}
-
-	array<double, 3> ESS{}, TGSS{};
-	for (unsigned i = 0; i < ESS.size(); i++) {
-		ESS[0] += ESSs[i][0];
-		ESS[1] += ESSs[i][1];
-		ESS[2] += ESSs[i][2];
-		TGSS[0] += TGSSs[i][0];
-		TGSS[1] += TGSSs[i][1];
-		TGSS[2] += TGSSs[i][2];
-	}
-
-	devF[0]	= (ESS[0] + TGSS[0])/(totalSize - 1);
-	devF[1] = (ESS[1] + TGSS[1])/(totalSize - 1);
-	devF[2] = (ESS[2] + TGSS[2])/(totalSize - 1);
+	devF[0]	= sqrt(devF[0]/totalSize);
+	devF[1] = sqrt(devF[1]/totalSize);
+	devF[2] = sqrt(devF[2]/totalSize);
 
 
 	std::cout << "-> FLOORSUBSTRACTOR: channel H, mean: " << meanF[0] << " , dev: " << devF[0] << endl;
@@ -106,12 +91,12 @@ bool FloorSubstractorCCS::train(const std::vector<cv::Mat>& _images) {
 
 	int minH, maxH, minS, maxS,  minV, maxV;
 
-	minH = (minH = meanF[0] - devF[0]) < 0 ? 0 : minH;
-	minS = (minS = meanF[1] - devF[1]) < 0 ? 0 : minS;
-	minV = (minV = meanF[2] - devF[2]) < 0 ? 0 : minV;
-	maxH = (maxH = meanF[0] + devF[0]) >180 ? 180 : maxH;
-	maxS = (maxS = meanF[1] + devF[1]) >255 ? 255 : maxS;
-	maxV = (maxV = meanF[2] + devF[2]) >255 ? 255 : maxV;
+	minH = (minH = meanF[0] - 3*devF[0]) < 0 ? 0 : minH;
+	minS = (minS = meanF[1] - 3*devF[1]) < 0 ? 0 : minS;
+	minV = (minV = meanF[2] - 3*devF[2]) < 0 ? 0 : minV;
+	maxH = (maxH = meanF[0] + 3*devF[0]) >180 ? 180 : maxH;
+	maxS = (maxS = meanF[1] + 3*devF[1]) >255 ? 255 : maxS;
+	maxV = (maxV = meanF[2] + 3*devF[2]) >255 ? 255 : maxV;
 
 
 	mClusterizer = createSingleClusteredSpace(minH, maxH, minS, maxS, minV, maxV, 180, 255, 255, 36);
