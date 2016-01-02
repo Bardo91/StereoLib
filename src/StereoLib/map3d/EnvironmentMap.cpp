@@ -467,16 +467,30 @@ bool EnvironmentMap::getTransformationBetweenPcs(const PointCloud<PointXYZ>& _ne
 	BOViL::STime *timer = BOViL::STime::get();
 	double t;
 
-	mPcJoiner.setInputSource(_newCloud.makeShared());
 	mPcJoiner.setInputTarget(_targetCloud.makeShared());
+	Eigen::Matrix4f prevTransformation = Eigen::Matrix4f::Identity();
+	_transformation = _initialGuess;
+	
+	for (int i = 0; i < mParams.icpMaxIcpIterations; ++i){
+		// Estimate
+		mPcJoiner.setInputSource(_newCloud.makeShared());
+		mPcJoiner.align(_alignedCloud, _transformation);
 
-	double t0 = timer->getTime();
-	mPcJoiner.align(_alignedCloud, _initialGuess);
-	t = timer->getTime() - t0;
+		//accumulate transformation between each Iteration
+		_transformation = mPcJoiner.getFinalTransformation();
+
+		//if the difference between this transformation and the previous one
+		//is smaller than the threshold, refine the process by reducing
+		//the maximal correspondence distance
+		if (fabs((mPcJoiner.getLastIncrementalTransformation() - prevTransformation).sum()) < mPcJoiner.getTransformationEpsilon())
+			mPcJoiner.setMaxCorrespondenceDistance(mPcJoiner.getMaxCorrespondenceDistance() - 0.001);
+
+		prevTransformation = mPcJoiner.getLastIncrementalTransformation();
+	}
+
 	mFittingScore = mPcJoiner.getFitnessScore();
 	
 	bool hasConverged = mPcJoiner.hasConverged() && mPcJoiner.getFitnessScore() < _maxFittingScore;
-	_transformation = mPcJoiner.getFinalTransformation();
 
 	if (_transformation.hasNaN()) {
 		cerr << "--> MAP:  ---> CRITICAL ERROR! Transformation has nans!!! <---" << endl;
