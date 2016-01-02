@@ -99,8 +99,8 @@ bool FloorSubstractorCCS::train(const std::vector<cv::Mat>& _images) {
 	maxV = (maxV = meanF[2] + 3*devF[2]) >255 ? 255 : maxV;
 
 
-	mClusterizer = createSingleClusteredSpace(minH, maxH, minS, maxS, minV, maxV, 180, 255, 255, 36);
-
+	//mClusterizer = createSingleClusteredSpace(minH, maxH, minS, maxS, minV, maxV, 180, 255, 255, 36);
+	mClusterizer = createSingleSparseCluster({ {minH, maxH},{0,20} }, { { minS, maxS } }, { { minV, maxV } }, 180, 255, 255, 36);
 	// Evaluate clusterizer
 	double nSamples, score;
 	for (Mat image : _images) {
