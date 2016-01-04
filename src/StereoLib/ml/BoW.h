@@ -51,6 +51,8 @@ private:	// Private methods
 	cv::Mat computeDescriptor(cv::Mat _frame);
 
 private:	// Private members
+	cjson::Json mParams;
+	
 	// Histogram creation
 	cv::Ptr<cv::FeatureDetector> mDetector;
 	cv::HOGDescriptor mHog;
@@ -67,7 +69,6 @@ private:	// Private members
 	bool							mAutoTrain = false;
 	std::vector<svmpp::ParamGrid>	mParamGrids;
 
-	cjson::Json mParams;
 };
 
 
