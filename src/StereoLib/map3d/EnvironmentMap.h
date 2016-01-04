@@ -52,6 +52,8 @@ public:		// Public interface
 		double	icpEuclideanEpsilon;
 		int		icpMaxIcpIterations;
 		float	icpMaxCorrespondenceDistance;
+		float	icpMaxAngleChangeCompared2ProvidedGuess;
+		float	icpMaxTranslationChangeCompared2ProvidedGuess;
 
 		// Pointcloud history filtering
 		unsigned	historySize;
@@ -130,7 +132,7 @@ private:	// Private methods
 	//			exists(cloud1(x,y,z)) && exists(cloud2(x,y,z)) ? Point(x,y,z) : null
 	pcl::PointCloud<pcl::PointXYZ> convoluteCloudsOnGrid(const pcl::PointCloud<pcl::PointXYZ> &_cloud1, const pcl::PointCloud<pcl::PointXYZ> &_cloud2);
 
-	bool validTransformation(const Eigen::Matrix4f &_transformation, double _maxAngle, double _maxTranslation);
+	bool validTransformation(const Eigen::Matrix4f & _transformation, const Eigen::Matrix4f &_guess);
 
 	
 private:	// Members
@@ -143,9 +145,6 @@ private:	// Members
 	pcl::IterativeClosestPointNonLinear<pcl::PointXYZ, pcl::PointXYZ>	mPcJoiner;
 	pcl::EuclideanClusterExtraction<pcl::PointXYZ> mEuclideanClusterExtraction;
 
-
-	const double cMaxAngle			= M_PI/180*1;	// 1º
-	const double cMaxTranslation	= 5;			// 10 mm 
 	double mFittingScore = 0;
 	bool		mUseICPres = false;
 
