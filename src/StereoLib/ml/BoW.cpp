@@ -142,20 +142,20 @@ void BoW::defaultParams() {
 	mSvmParams.eps = 1e-5;
 	mSvmParams.p = 0.1;
 	mSvmParams.shrinking = 0;
-	mSvmParams.probability = 0;
+	mSvmParams.probability = 1;
 	mSvmParams.nr_weight = 0;
 	mSvmParams.weight_label = nullptr;
 	mSvmParams.weight = nullptr;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void BoW::decodeParams(::Json _paramFile) {
+void BoW::decodeParams(Json _paramFile) {
 	decodeSvmParams(_paramFile["svm"]);
 	decodeHistogramParams(_paramFile["histogramMatcher"]);
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void BoW::decodeSvmParams(::Json _svmParams) {
+void BoW::decodeSvmParams(Json _svmParams) {
 	defaultParams();
 
 	decodeSvmType(_svmParams["type"], _svmParams["kernel"]);
@@ -179,7 +179,7 @@ void BoW::decodeSvmParams(::Json _svmParams) {
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void BoW::decodeTrainGrids(::Json _gridFile) {
+void BoW::decodeTrainGrids(Json _gridFile) {
 	if (_gridFile.contains("c")) {
 		mParamGrids.push_back(ParamGrid(ParamGrid::Type::C, _gridFile["c"]["min"], _gridFile["c"]["max"], _gridFile["c"]["step"]));
 	}
