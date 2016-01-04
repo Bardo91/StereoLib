@@ -268,23 +268,27 @@ bool EnvironmentMap::transformCloudtoTargetCloudAndAddToHistory(const PointCloud
 	PointCloud<PointXYZ> filtered_cloudWCS;
 	Matrix4f transformation;
 	bool hasConverged = getTransformationBetweenPcs(*voxel(filtered_cloud), *_target, transformation, _maxFittingScore, _guess);
-
-	Translation3f tran = Translation3f(_guess.block<3, 1>(0, 3) - transformation.block<3, 1>(0, 3));
-	float translationChange = tran.vector().norm();
-	Quaternionf rot = Quaternionf(_guess.block<3, 3>(0, 0));
-	float angleChange = rot.angularDistance(Quaternionf(transformation.block<3, 3>(0, 0))) * 180 / M_PI;
-	cout << "ICP result is different to our provided guess by a translation of: " << endl <<  translationChange << endl;
-	cout << "and a rotation of " << endl << angleChange << "deg" << endl;
-	float maxAngle = 2; //deg
-	float maxTran = 0.03; //meter
+	bool validT = validTransformation(transformation, _guess);
 	
-	if (hasConverged) {
+	if (hasConverged || validT) {
+		if (!hasConverged && validT) {
+			cout << "--> MAP: ICP score is HIGH" << endl;
+			cout << "--> MAP: we will add the cloud becuase both the translation and rotation seem good" << endl;
+		}
+		if (hasConverged && !validT) {
+			cout << "--> MAP: This is suspicious, ICP score is good, but the transformation is not close to the guess" << endl;
+			cout << "--> MAP: Possible CORRUPTED CLOUD with bad data or bad EKF prediction (if fast motion possible)" << endl;
+		}
+		if (hasConverged && validT) {
+			cout << "--> MAP: ICP GOOD, TRANSFORMATION GOOD" << endl;
+		}
+
 		transformPointCloud(*filtered_cloud, filtered_cloudWCS, transformation);
 		PointCloud<PointXYZ>::Ptr voxeledFiltered_cloudWCS = voxel(filtered_cloudWCS.makeShared());
 	
 		cout << "--> MAP: The filtered cloud has: " << filtered_cloudWCS.size() << "points" << endl;
 		cout << "--> MAP: The voxeled cloud has: " << voxeledFiltered_cloudWCS->size() << "points" << endl;
-		cout << "--> MAP: The guess of the transformation is" << endl << _guess << endl << "And the result is:"<< endl  << transformation << endl;
+		cout << "--> MAP: The guess of the transformation is" << endl << _guess << endl << "And the result is:" << endl << transformation << endl;
 
 		voxeledFiltered_cloudWCS->sensor_orientation_ = Quaternionf(transformation.block<3, 3>(0, 0));
 		voxeledFiltered_cloudWCS->sensor_origin_ = transformation.col(3);
@@ -292,29 +296,8 @@ bool EnvironmentMap::transformCloudtoTargetCloudAndAddToHistory(const PointCloud
 		return true;
 	}
 	else {
-		cout << "--> MAP: ICP score is HIGH" << endl;
-		cout << "--> MAP: ICP result is different to our provided guess by a translation of: " << endl << translationChange << endl;
-		cout << "--> MAP: and a rotation of " << endl << angleChange << "deg" << endl;
-		if (angleChange < maxAngle && translationChange < maxTran) {
-			cout << "--> MAP: we will add the cloud becuase the translation and rotation seem good" << endl;
-			transformPointCloud(*filtered_cloud, filtered_cloudWCS, transformation);
-			PointCloud<PointXYZ>::Ptr voxeledFiltered_cloudWCS = voxel(filtered_cloudWCS.makeShared());
-
-			cout << "--> MAP: The filtered cloud has: " << filtered_cloudWCS.size() << "points" << endl;
-			cout << "--> MAP: The voxeled cloud has: " << voxeledFiltered_cloudWCS->size() << "points" << endl;
-			cout << "--> MAP: The guess of the transformation is" << endl << _guess << endl << "And the result is:" << endl << transformation << endl;
-
-			voxeledFiltered_cloudWCS->sensor_orientation_ = Quaternionf(transformation.block<3, 3>(0, 0));
-			voxeledFiltered_cloudWCS->sensor_origin_ = transformation.col(3);
-			mCloudHistory.push_back(voxeledFiltered_cloudWCS);
-			return true;
-		}
-		else {
-			cout << "--> MAP: ICP failed, we keep EKF pose" << endl;
+		cout << "--> MAP: ICP failed, we keep EKF pose" << endl;
 		return false;
-
-		}
-
 	}
 }
 
@@ -548,25 +531,19 @@ PointCloud<PointXYZ> EnvironmentMap::convoluteCloudsOnGrid(const PointCloud<Poin
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-bool EnvironmentMap::validTransformation(const Matrix4f & _transformation, double _maxAngle, double _maxTranslation) {
-	Matrix3f rotation = _transformation.block<3,3>(0,0);
-	Vector3f translation = _transformation.block<3,1>(0,3);
-	
-	Affine3f aff(Affine3f::Identity());
-	aff = aff*rotation;
-	
-	float roll, pitch, yaw;
-	getEulerAngles(aff, roll, pitch, yaw);
+bool EnvironmentMap::validTransformation(const Matrix4f & _transformation, const Matrix4f &_guess) {
+	Translation3f tran = Translation3f(_guess.block<3, 1>(0, 3) - _transformation.block<3, 1>(0, 3));
+	float translationChange = tran.vector().norm();
+	Quaternionf rot = Quaternionf(_guess.block<3, 3>(0, 0));
+	float angleChange = rot.angularDistance(Quaternionf(_transformation.block<3, 3>(0, 0))) * 180 / M_PI;
+	cout << "--> MAP: ICP result is different to our provided guess by a translation of: " << endl << translationChange << endl;
+	cout << "--> MAP: and a rotation of " << endl << angleChange << "deg" << endl;
 
-	cout << "--> MAP: Rotations: " << roll << ", " << pitch << ", " << yaw << endl;
-	cout << "--> MAP: Translations: " << translation(0) << ", " << translation(1) << ", " << translation(2) << endl;
 
-	if (abs(roll) < cMaxAngle && abs(pitch) < cMaxAngle && abs(yaw) < cMaxAngle  &&
-		abs(translation(0)) < cMaxTranslation && abs(translation(1)) < cMaxTranslation && abs(translation(2)) < cMaxTranslation) {
-		cout << "--> MAP: Valid point cloud rotation" << endl;
+	if (angleChange < mParams.icpMaxAngleChangeCompared2ProvidedGuess && translationChange < mParams.icpMaxTranslationChangeCompared2ProvidedGuess) {
 		return true;
-	} else {
-		cout << "--> MAP: Invalid point cloud rotation" << endl;
+	}
+	else {
 		return false;
 	}
 }
