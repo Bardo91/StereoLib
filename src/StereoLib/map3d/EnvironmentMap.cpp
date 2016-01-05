@@ -269,6 +269,7 @@ bool EnvironmentMap::transformCloudtoTargetCloudAndAddToHistory(const PointCloud
 	Matrix4f transformation;
 	bool hasConverged = getTransformationBetweenPcs(*voxel(filtered_cloud), *_target, transformation, _maxFittingScore, _guess);
 	bool validT = validTransformation(transformation, _guess);
+	mICPres = transformation;
 	
 	if (hasConverged || validT) {
 		if (!hasConverged && validT) {

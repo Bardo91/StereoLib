@@ -118,6 +118,8 @@ public:		// Public interface
 	bool useICPresult() const { return mUseICPres; }
 	void useICPresult(bool _input) { mUseICPres = _input; }
 	double fittingScore() const { return mFittingScore; }
+	Eigen::Matrix4f ICPres() const { return mICPres; }
+	//void ICPres(Eigen::Matrix4f _icpRes) { mICPres = _icpRes; }
 private:	// Private methods
 	// Calculate transformation between two point cloud using ICP-NL algorithm.
 	bool getTransformationBetweenPcs(const pcl::PointCloud<pcl::PointXYZ> &_newCloud,
@@ -147,6 +149,8 @@ private:	// Members
 
 	double mFittingScore = 0;
 	bool		mUseICPres = false;
+	Eigen::Matrix4f mICPres;
+	pcl::PointCloud<pcl::PointXYZ> mAlignedBadCloud;
 
 	//history calculation options
 	bool addPointsSimple(const pcl::PointCloud<pcl::PointXYZ>::Ptr & _cloud, const Eigen::Vector4f &_translationPrediction, const Eigen::Quaternionf &_qRotationPrediction,const double _maxFittingScore, pcl::PointCloud< pcl::PointXYZ>::Ptr &_addedCloud);
