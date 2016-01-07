@@ -297,6 +297,8 @@ bool EnvironmentMap::transformCloudtoTargetCloudAndAddToHistory(const PointCloud
 		return true;
 	}
 	else {
+		transformPointCloud(*filtered_cloud, filtered_cloudWCS, transformation);
+		mAlignedBadCloud = *voxel(filtered_cloudWCS.makeShared());
 		cout << "--> MAP: ICP failed, we keep EKF pose" << endl;
 		return false;
 	}

@@ -115,11 +115,9 @@ public:		// Public interface
 	
 	void updateSensorPose(const Eigen::Vector4f &_position, const Eigen::Quaternionf &_orientation);
 
-	bool useICPresult() const { return mUseICPres; }
-	void useICPresult(bool _input) { mUseICPres = _input; }
 	double fittingScore() const { return mFittingScore; }
 	Eigen::Matrix4f ICPres() const { return mICPres; }
-	//void ICPres(Eigen::Matrix4f _icpRes) { mICPres = _icpRes; }
+	pcl::PointCloud<pcl::PointXYZ>::Ptr AlignedBadCloud() { return mAlignedBadCloud.makeShared(); }
 private:	// Private methods
 	// Calculate transformation between two point cloud using ICP-NL algorithm.
 	bool getTransformationBetweenPcs(const pcl::PointCloud<pcl::PointXYZ> &_newCloud,
@@ -148,7 +146,6 @@ private:	// Members
 	pcl::EuclideanClusterExtraction<pcl::PointXYZ> mEuclideanClusterExtraction;
 
 	double mFittingScore = 0;
-	bool		mUseICPres = false;
 	Eigen::Matrix4f mICPres;
 	pcl::PointCloud<pcl::PointXYZ> mAlignedBadCloud;
 
