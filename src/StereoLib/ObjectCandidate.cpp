@@ -1,4 +1,5 @@
 #include "ObjectCandidate.h"
+#include "ObjectCandidate.h"
 //
 //
 //
@@ -103,6 +104,10 @@ std::pair<int, double> ObjectCandidate::cathegory() const {
 	}
 
 	return pair<int, double>(maxIndex, maxProb);
+}
+
+std::vector<std::vector<double>> ObjectCandidate::cathegoryHistory(){
+	return mLabelsHistory;
 }
 
 void ObjectCandidate::matchSequentialCandidates(vector<ObjectCandidate> &_globalCandidates, vector<ObjectCandidate> &_newCandidates, float _threshold)
