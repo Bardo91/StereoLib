@@ -259,7 +259,7 @@ PointCloud<PointXYZRGB>::Ptr colorizePointCloud2(const PointCloud<PointXYZ>::Ptr
 
 bool EnvironmentMap::transformCloudtoTargetCloudAndAddToHistory(const PointCloud<PointXYZ>::Ptr & _cloud, const PointCloud<PointXYZ>::Ptr & _target, const double _maxFittingScore, const Matrix4f &_guess)
 {
-	if(_cloud->size() == 0)
+	if (_cloud->size() == 0)
 		return false;
 
 	//temporary cleaned cloud for calculation of the transformation. We do not want to voxel in the camera coordinate system
@@ -270,7 +270,10 @@ bool EnvironmentMap::transformCloudtoTargetCloudAndAddToHistory(const PointCloud
 	bool hasConverged = getTransformationBetweenPcs(*voxel(filtered_cloud), *_target, transformation, _maxFittingScore, _guess);
 	bool validT = validTransformation(transformation, _guess);
 	mICPres = transformation;
-	
+	transformPointCloud(*voxel(filtered_cloud), mGuessCloud, _guess);
+	transformPointCloud(*filtered_cloud, filtered_cloudWCS, transformation);
+	mAlignedCloud = *voxel(filtered_cloudWCS.makeShared());
+
 	if (hasConverged || validT) {
 		if (!hasConverged && validT) {
 			cout << "--> MAP: ICP score is HIGH" << endl;
@@ -297,8 +300,6 @@ bool EnvironmentMap::transformCloudtoTargetCloudAndAddToHistory(const PointCloud
 		return true;
 	}
 	else {
-		transformPointCloud(*filtered_cloud, filtered_cloudWCS, transformation);
-		mAlignedBadCloud = *voxel(filtered_cloudWCS.makeShared());
 		cout << "--> MAP: ICP failed, we keep EKF pose" << endl;
 		return false;
 	}
@@ -456,27 +457,34 @@ bool EnvironmentMap::getTransformationBetweenPcs(const PointCloud<PointXYZ>& _ne
 	mPcJoiner.setInputTarget(_targetCloud.makeShared());
 	Eigen::Matrix4f prevTransformation = Eigen::Matrix4f::Identity();
 	_transformation = _initialGuess;
-	
+	mPcJoiner.setMaxCorrespondenceDistance(mParams.icpMaxCorrespondenceDistance);
+	bool hasConvergedInSomeIteration = false;
 	for (int i = 0; i < mParams.icpMaxIcpIterations; ++i){
 		// Estimate
+		
 		mPcJoiner.setInputSource(_newCloud.makeShared());
 		mPcJoiner.align(_alignedCloud, _transformation);
-
+		cout << "iteration: " << i << " score: " << mPcJoiner.getFitnessScore();
 		//accumulate transformation between each Iteration
 		_transformation = mPcJoiner.getFinalTransformation();
 
 		//if the difference between this transformation and the previous one
 		//is smaller than the threshold, refine the process by reducing
 		//the maximal correspondence distance
-		if (fabs((mPcJoiner.getLastIncrementalTransformation() - prevTransformation).sum()) < mPcJoiner.getTransformationEpsilon())
-			mPcJoiner.setMaxCorrespondenceDistance(mPcJoiner.getMaxCorrespondenceDistance() - 0.001);
+		if (fabs((mPcJoiner.getLastIncrementalTransformation() - prevTransformation).sum()) < mPcJoiner.getTransformationEpsilon()) {
+			mPcJoiner.setMaxCorrespondenceDistance(mPcJoiner.getMaxCorrespondenceDistance()*0.75);
+			cout << " corr reduced to: " << mPcJoiner.getMaxCorrespondenceDistance() << endl;
+		}
+		else
+			cout << endl;
 
 		prevTransformation = mPcJoiner.getLastIncrementalTransformation();
+		hasConvergedInSomeIteration |= mPcJoiner.hasConverged();
 	}
 
 	mFittingScore = mPcJoiner.getFitnessScore();
 	
-	bool hasConverged = mPcJoiner.hasConverged() && mPcJoiner.getFitnessScore() < _maxFittingScore;
+	bool hasConverged = (mPcJoiner.hasConverged() || hasConvergedInSomeIteration) && mPcJoiner.getFitnessScore() < _maxFittingScore;
 
 	if (_transformation.hasNaN()) {
 		cerr << "--> MAP:  ---> CRITICAL ERROR! Transformation has nans!!! <---" << endl;
@@ -486,7 +494,7 @@ bool EnvironmentMap::getTransformationBetweenPcs(const PointCloud<PointXYZ>& _ne
 	}
 
 	cout << "--> MAP: Time for alignment " << t << endl;
-	cout << "--> MAP: Fitness score " << mPcJoiner.getFitnessScore() << "   Has conveged? " << mPcJoiner.hasConverged() << endl;
+	cout << "--> MAP: Fitness score " << mPcJoiner.getFitnessScore() << "   Has conveged? " << hasConverged << endl;
 
 	return hasConverged;
 }

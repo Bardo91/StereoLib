@@ -117,7 +117,8 @@ public:		// Public interface
 
 	double fittingScore() const { return mFittingScore; }
 	Eigen::Matrix4f ICPres() const { return mICPres; }
-	pcl::PointCloud<pcl::PointXYZ>::Ptr AlignedBadCloud() { return mAlignedBadCloud.makeShared(); }
+	pcl::PointCloud<pcl::PointXYZ>::Ptr AlignedCloud() { return mAlignedCloud.makeShared(); }
+	pcl::PointCloud<pcl::PointXYZ>::Ptr GuessCloud() { return mGuessCloud.makeShared(); }
 private:	// Private methods
 	// Calculate transformation between two point cloud using ICP-NL algorithm.
 	bool getTransformationBetweenPcs(const pcl::PointCloud<pcl::PointXYZ> &_newCloud,
@@ -147,7 +148,8 @@ private:	// Members
 
 	double mFittingScore = 0;
 	Eigen::Matrix4f mICPres;
-	pcl::PointCloud<pcl::PointXYZ> mAlignedBadCloud;
+	pcl::PointCloud<pcl::PointXYZ> mAlignedCloud;
+	pcl::PointCloud<pcl::PointXYZ> mGuessCloud;
 
 	//history calculation options
 	bool addPointsSimple(const pcl::PointCloud<pcl::PointXYZ>::Ptr & _cloud, const Eigen::Vector4f &_translationPrediction, const Eigen::Quaternionf &_qRotationPrediction,const double _maxFittingScore, pcl::PointCloud< pcl::PointXYZ>::Ptr &_addedCloud);
