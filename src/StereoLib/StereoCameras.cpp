@@ -168,9 +168,10 @@ PointCloud<PointXYZ>::Ptr StereoCameras::pointCloud(const cv::Mat &_frame1, cons
 //---------------------------------------------------------------------------------------------------------------------
 std::vector<cv::Point2f> StereoCameras::project3dPoints(const std::vector<cv::Point3f>& _points, bool _isLeftCamera, const Eigen::Vector4f &_position, const Eigen::Quaternionf &_orientation) {
 	// Transform eigen to opencv matrix.
+	Transform<float, 3, Affine> camInMap = Translation3f(_position.block<3, 1>(0, 0))*_orientation;
 
-	Matrix<float,3,3, RowMajor> rotation	= _orientation.conjugate().matrix();
-	Matrix<float,3,1> translation			= -(_position.block<3, 1>(0, 0));
+	Matrix<float, 3, 3, RowMajor> rotation = camInMap.inverse().rotation().matrix();
+	Matrix<float, 3, 1> translation = camInMap.inverse().translation().matrix();
 
 	// Put Rotation and translation in OpenCV format
 	Mat R(3,3, CV_32F), T(3,1, CV_32F);
