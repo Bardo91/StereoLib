@@ -14,7 +14,7 @@
 class LogManager {
 public:
 	static void init();
-	static LogManager &get();
+	static LogManager *get();
 	static void end();
 
 
@@ -24,7 +24,7 @@ private:
 	LogManager();
 
 private:
-	std::unordered_map<std::string, std::ofstream> mFileMap;
+	std::unordered_map<std::string, std::ofstream*> mFileMap;
 
 	std::string mFolderBase;
 
