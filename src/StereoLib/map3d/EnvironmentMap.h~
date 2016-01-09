@@ -125,7 +125,7 @@ private:	// Private methods
 		const pcl::PointCloud< pcl::PointXYZ> &_targetCloud, 
 		Eigen::Matrix4f &_transformation, 
 		const double _maxFittingScore,
-		const Eigen::Matrix4f &_initialGuess,
+		const Eigen::Matrix4f &_initialGuess = Eigen::Matrix4f::Identity(),
 		pcl::PointCloud<pcl::PointXYZ> &_alignedCloud);
 	
 	// This method use the internal voxel grid to downsample the input clouds. 

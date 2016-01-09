@@ -15,7 +15,7 @@ class FloorSubstractorCCS: public FloorSubstractor {
 public:
 	bool train(const std::vector<cv::Mat> &_images);
 
-	bool substract(const cv::Mat &_in, cv::Mat &_out, cv::Mat &_mask);
+	bool substract(const cv::Mat &_in, cv::Mat &_out, cv::Mat &_mask = cv::Mat());
 
 private:
 	BOViL::ColorClusterSpace *mClusterizer;
