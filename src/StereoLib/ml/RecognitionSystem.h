@@ -15,7 +15,7 @@
 #include "BoW.h"
 
 #include <vector>
-#include <cjson/Json.h>
+#include <cjson/json.h>
 #include <opencv2/opencv.hpp>
 
 // Forward declaration
