@@ -19,6 +19,9 @@
 
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
+
+#include <utils/LogManager.h>
+
 using namespace pcl;
 using namespace std;
 using namespace Eigen;
@@ -148,6 +151,13 @@ bool EnvironmentMap::addPointsSimple(const pcl::PointCloud<pcl::PointXYZ>::Ptr &
 		transformPointCloud(*lastJoinedCloud, PointCloudCameraCS, originInverse(mCloud.makeShared()),sensorInverse(mCloud.makeShared()));	
 		_addedCloud = PointCloudCameraCS.makeShared();
 
+		(*LogManager::get())["MapLog.txt"] << mCloud.size() << "\t" << lastJoinedCloud->size() << "\t";
+		(*LogManager::get())["MapLog.txt"] << mCloud.size() << "\t";
+		for (PointXYZ point : mCloud) {
+			(*LogManager::get())["MapLog.txt"] << point.x << "\t" << point.y << "\t" << point.z << "\t";
+		}
+		(*LogManager::get())["MapLog.txt"] << std::endl;
+
 	}
 	
 
@@ -262,15 +272,38 @@ bool EnvironmentMap::transformCloudtoTargetCloudAndAddToHistory(const PointCloud
 	if (_cloud->size() == 0)
 		return false;
 
+	(*LogManager::get())["NewCloudCCS.txt"] << _cloud->size() << "\t";
+	for (PointXYZ point : *_cloud) {
+		(*LogManager::get())["NewCloudCCS.txt"] << point.x << "\t" << point.y << "\t" << point.z << "\t";
+	}
+	(*LogManager::get())["NewCloudCCS.txt"] << std::endl;
+
 	//temporary cleaned cloud for calculation of the transformation. We do not want to voxel in the camera coordinate system
 	//because we lose some points when rotating it to the map and voxeling there. That's why we rotate the original cloud
 	PointCloud<PointXYZ>::Ptr filtered_cloud = filter(_cloud);
-	PointCloud<PointXYZ> filtered_cloudWCS;
+	
+	(*LogManager::get())["NewCloudFilteredCCS.txt"] << filtered_cloud->size() << "\t";
+	for (PointXYZ point : *filtered_cloud) {
+		(*LogManager::get())["NewCloudFilteredCCS.txt"] << point.x << "\t" << point.y << "\t" << point.z << "\t";
+	}
+	(*LogManager::get())["NewCloudFilteredCCS.txt"] << std::endl;
+	
 	Matrix4f transformation;
-	bool hasConverged = getTransformationBetweenPcs(*voxel(filtered_cloud), *_target, transformation, _maxFittingScore, _guess);
+	PointCloud<PointXYZ> voxeledCloud = *voxel(filtered_cloud);
+	
+	(*LogManager::get())["NewCloudFilteredVoxeledCCS.txt"] << voxeledCloud.size() << "\t";
+	for (PointXYZ point : voxeledCloud) {
+		(*LogManager::get())["NewCloudFilteredVoxeledCCS.txt"] << point.x << "\t" << point.y << "\t" << point.z << "\t";
+	}
+	(*LogManager::get())["NewCloudFilteredVoxeledCCS.txt"] << std::endl;
+
+	
+	bool hasConverged = getTransformationBetweenPcs(voxeledCloud, *_target, transformation, _maxFittingScore, _guess);
 	bool validT = validTransformation(transformation, _guess);
 	mICPres = transformation;
-	transformPointCloud(*voxel(filtered_cloud), mGuessCloud, _guess);
+	transformPointCloud(voxeledCloud, mGuessCloud, _guess);
+
+	PointCloud<PointXYZ> filtered_cloudWCS;
 	transformPointCloud(*filtered_cloud, filtered_cloudWCS, transformation);
 	mAlignedCloud = *voxel(filtered_cloudWCS.makeShared());
 
@@ -484,8 +517,11 @@ bool EnvironmentMap::getTransformationBetweenPcs(const PointCloud<PointXYZ>& _ne
 	}
 
 	mFittingScore = mPcJoiner.getFitnessScore();
-	
+	(*LogManager::get())["IcpLog.txt"] << mFittingScore << "\t";
+
 	bool hasConverged = (mPcJoiner.hasConverged() || hasConvergedInSomeIteration) && mPcJoiner.getFitnessScore() < _maxFittingScore;
+	
+	(*LogManager::get())["IcpLog.txt"] << hasConverged << "\t";
 
 	if (_transformation.hasNaN()) {
 		cerr << "--> MAP:  ---> CRITICAL ERROR! Transformation has nans!!! <---" << endl;
@@ -496,6 +532,12 @@ bool EnvironmentMap::getTransformationBetweenPcs(const PointCloud<PointXYZ>& _ne
 
 	cout << "--> MAP: Time for alignment " << t << endl;
 	cout << "--> MAP: Fitness score " << mPcJoiner.getFitnessScore() << "   Has conveged? " << hasConverged << endl;
+
+	auto quatGuess = Quaternionf(_initialGuess.block<3, 3>(0, 0));
+	(*LogManager::get())["IcpLog.txt"] << _initialGuess.block<3, 1>(0, 3).transpose() << "\t" << quatGuess.w() << "\t" << quatGuess.x() << "\t" << quatGuess.y() << "\t" << quatGuess.z() << "\t";
+
+	auto quatRes= Quaternionf(_transformation.block<3, 3>(0, 0));
+	(*LogManager::get())["IcpLog.txt"] << _transformation.block<3, 1>(0, 3).transpose() << "\t" << quatRes.w() << "\t" << quatRes.x() << "\t" << quatRes.y() << "\t" << quatRes.z() << std::endl;
 
 	return hasConverged;
 }
@@ -546,8 +588,12 @@ PointCloud<PointXYZ> EnvironmentMap::convoluteCloudsOnGrid(const PointCloud<Poin
 bool EnvironmentMap::validTransformation(const Matrix4f & _transformation, const Matrix4f &_guess) {
 	Translation3f tran = Translation3f(_guess.block<3, 1>(0, 3) - _transformation.block<3, 1>(0, 3));
 	float translationChange = tran.vector().norm();
+	(*LogManager::get())["IcpLog.txt"] << translationChange << "\t";
+
 	Quaternionf rot = Quaternionf(_guess.block<3, 3>(0, 0));
 	float angleChange = rot.angularDistance(Quaternionf(_transformation.block<3, 3>(0, 0))) * 180 / M_PI;
+	(*LogManager::get())["IcpLog.txt"] << angleChange << "\t";
+	
 	cout << "--> MAP: ICP result is different to our provided guess by a translation of: " << endl << translationChange << endl;
 	cout << "--> MAP: and a rotation of " << endl << angleChange << "deg" << endl;
 

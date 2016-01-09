@@ -7,6 +7,8 @@
 #include "ParallelFeatureMatcher.h"
 #include "StereoCameras.h"
 
+#include <utils/LogManager.h>
+
 using namespace cv;
 using namespace std;
 using namespace pcl;
@@ -113,7 +115,7 @@ PointCloud<PointXYZ>::Ptr StereoCameras::pointCloud(const cv::Mat &_frame1, cons
 	// Compute keypoint only in first image
 	vector<Point2i> keypoints;
 	computeFeatures(_frame1, keypoints);
-
+	(*LogManager::get())["CameraLog.txt"] << keypoints.size() << "\t";
 	std::cout << "--> STEREO: Features computed in frame1: " << keypoints.size() << std::endl;
 
 	// Compute projection of epipolar lines into second image.
@@ -146,12 +148,13 @@ PointCloud<PointXYZ>::Ptr StereoCameras::pointCloud(const cv::Mat &_frame1, cons
 	}
 
 	std::cout << "--> STEREO: Features matched: " << points1.size() << std::endl;
+	(*LogManager::get())["CameraLog.txt"] << points1.size() << "\t";
 	// Triangulate points using features in both images.
 	vector<Point3f> points3d = triangulate(points1, points2);
 	// Filter points using reprojection.
 	vector<Point3f> points3dFiltered = filterPoints(_frame1, _frame2, points1, points2, points3d, _maxReprojectionError);
 	std::cout << "--> STEREO: Points Filtered with reprojection: " << points3dFiltered.size() << std::endl;
-
+	(*LogManager::get())["CameraLog.txt"] << points3dFiltered.size() << "\t";
 	// Filter points by range.
 	PointCloud<PointXYZ>::Ptr cloud (new PointCloud<PointXYZ>());
 	for (unsigned i = 0; i < points3dFiltered.size(); i++) {
@@ -161,7 +164,7 @@ PointCloud<PointXYZ>::Ptr StereoCameras::pointCloud(const cv::Mat &_frame1, cons
 		}
 	}
 	std::cout << "--> STEREO: Points in the selected range: " << cloud->size() << std::endl;
-
+	(*LogManager::get())["CameraLog.txt"] << cloud->size() << std::endl;
 	return cloud;
 }
 

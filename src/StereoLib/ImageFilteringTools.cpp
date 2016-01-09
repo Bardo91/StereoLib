@@ -6,6 +6,7 @@
 
 #include "ImageFilteringTools.h"
 
+#include <utils/LogManager.h>
 
 using namespace cv;
 using namespace std;
@@ -36,7 +37,7 @@ bool isBlurry(const Mat &_image, double _threshold) {
 
 	double blurriness = horiBlurMetric > vertBlurMetric ? horiBlurMetric : vertBlurMetric;
 	cout << horiBlurMetric << " " << vertBlurMetric << " ";
-
+	(*LogManager::get())["CameraLog.txt"] << horiBlurMetric << "\t" << vertBlurMetric << "\t";
 	return horiBlurMetric > _threshold || vertBlurMetric > _threshold? true : false;
 }
 
