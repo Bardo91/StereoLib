@@ -152,7 +152,6 @@ bool EnvironmentMap::addPointsSimple(const pcl::PointCloud<pcl::PointXYZ>::Ptr &
 		_addedCloud = PointCloudCameraCS.makeShared();
 
 		(*LogManager::get())["MapLog.txt"] << mCloud.size() << "\t" << lastJoinedCloud->size() << "\t";
-		(*LogManager::get())["MapLog.txt"] << mCloud.size() << "\t";
 		for (PointXYZ point : mCloud) {
 			(*LogManager::get())["MapLog.txt"] << point.x << "\t" << point.y << "\t" << point.z << "\t";
 		}
@@ -300,6 +299,13 @@ bool EnvironmentMap::transformCloudtoTargetCloudAndAddToHistory(const PointCloud
 	
 	bool hasConverged = getTransformationBetweenPcs(voxeledCloud, *_target, transformation, _maxFittingScore, _guess);
 	bool validT = validTransformation(transformation, _guess);
+
+	auto quatGuess = Quaternionf(_guess.block<3, 3>(0, 0));
+	(*LogManager::get())["IcpLog.txt"] << _guess.block<3, 1>(0, 3).transpose() << "\t" << quatGuess.w() << "\t" << quatGuess.x() << "\t" << quatGuess.y() << "\t" << quatGuess.z() << "\t";
+
+	auto quatRes = Quaternionf(transformation.block<3, 3>(0, 0));
+	(*LogManager::get())["IcpLog.txt"] << transformation.block<3, 1>(0, 3).transpose() << "\t" << quatRes.w() << "\t" << quatRes.x() << "\t" << quatRes.y() << "\t" << quatRes.z() << std::endl;
+
 	mICPres = transformation;
 	transformPointCloud(voxeledCloud, mGuessCloud, _guess);
 
@@ -532,12 +538,6 @@ bool EnvironmentMap::getTransformationBetweenPcs(const PointCloud<PointXYZ>& _ne
 
 	cout << "--> MAP: Time for alignment " << t << endl;
 	cout << "--> MAP: Fitness score " << mPcJoiner.getFitnessScore() << "   Has conveged? " << hasConverged << endl;
-
-	auto quatGuess = Quaternionf(_initialGuess.block<3, 3>(0, 0));
-	(*LogManager::get())["IcpLog.txt"] << _initialGuess.block<3, 1>(0, 3).transpose() << "\t" << quatGuess.w() << "\t" << quatGuess.x() << "\t" << quatGuess.y() << "\t" << quatGuess.z() << "\t";
-
-	auto quatRes= Quaternionf(_transformation.block<3, 3>(0, 0));
-	(*LogManager::get())["IcpLog.txt"] << _transformation.block<3, 1>(0, 3).transpose() << "\t" << quatRes.w() << "\t" << quatRes.x() << "\t" << quatRes.y() << "\t" << quatRes.z() << std::endl;
 
 	return hasConverged;
 }
