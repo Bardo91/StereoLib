@@ -78,7 +78,7 @@ PointCloud<PointXYZ>::Ptr EnvironmentMap::filter(const PointCloud<PointXYZ>::Ptr
 
 //---------------------------------------------------------------------------------------------------------------------
 // you can only use one type of history calculation in the application, because they use the same members which need to be calculated correctly in previous steps
-bool EnvironmentMap::addPoints(const pcl::PointCloud< pcl::PointXYZ>::Ptr &_cloud, const Eigen::Vector4f &_translationPrediction, const Eigen::Quaternionf &_qRotationPrediction, enum eHistoryCalculation _calculation, const double _maxFittingScore, pcl::PointCloud< pcl::PointXYZ>::Ptr &_addedCloud){
+int EnvironmentMap::addPoints(const pcl::PointCloud< pcl::PointXYZ>::Ptr &_cloud, const Eigen::Vector4f &_translationPrediction, const Eigen::Quaternionf &_qRotationPrediction, enum eHistoryCalculation _calculation, const double _maxFittingScore, pcl::PointCloud< pcl::PointXYZ>::Ptr &_addedCloud){
 	switch (_calculation) {
 		case eHistoryCalculation::Simple:
 			return addPointsSimple(_cloud, _translationPrediction, _qRotationPrediction, _maxFittingScore, _addedCloud);
@@ -97,14 +97,14 @@ bool EnvironmentMap::addPoints(const pcl::PointCloud< pcl::PointXYZ>::Ptr &_clou
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-bool EnvironmentMap::addPointsSimple(const pcl::PointCloud<pcl::PointXYZ>::Ptr & _cloud, const Eigen::Vector4f &_translationPrediction, const Eigen::Quaternionf &_qRotationPrediction, const double _maxFittingScore, pcl::PointCloud< pcl::PointXYZ>::Ptr &_addedCloud) {
+int EnvironmentMap::addPointsSimple(const pcl::PointCloud<pcl::PointXYZ>::Ptr & _cloud, const Eigen::Vector4f &_translationPrediction, const Eigen::Quaternionf &_qRotationPrediction, const double _maxFittingScore, pcl::PointCloud< pcl::PointXYZ>::Ptr &_addedCloud) {
 	_addedCloud = _cloud;
 	if (_cloud->size() < 10) {
 		std::cout << "--> MAP: addPointsSimple detects that cloud has less than 10 points, ignoring it" << std::endl;
-		return false;
+		return 0;
 	}
 
-	bool hasConverged = false;
+	int result = 0;
 	if (mCloud.size() == 0) {
 		if (mCloudHistory.size() == 0) {
 			// Store First cloud as reference
@@ -113,12 +113,12 @@ bool EnvironmentMap::addPointsSimple(const pcl::PointCloud<pcl::PointXYZ>::Ptr &
 			firstCloud->sensor_origin_ = Vector4f(0,0,0,1);
 			firstCloud->sensor_orientation_ = Quaternionf::Identity();
 			mCloudHistory.push_back(firstCloud);
-			hasConverged = true;
+			result = eIcpResult::HasConverged;
 		}
 		// transform clouds to history until there are enough to make first map from history
 		else if (mCloudHistory.size() < mParams.historySize) {
 			printf("--> MAP: This is point cloud Nr. %d of %d needed for map.\n", mCloudHistory.size() + 1, mParams.historySize);
-			hasConverged = transformCloudtoTargetCloudAndAddToHistory(_cloud, mCloudHistory[0], _maxFittingScore, transformationFromSensor(mCloudHistory.back()));
+			result = transformCloudtoTargetCloudAndAddToHistory(_cloud, mCloudHistory[0], _maxFittingScore, transformationFromSensor(mCloudHistory.back()));
 		}
 	}
 	else {
@@ -128,11 +128,15 @@ bool EnvironmentMap::addPointsSimple(const pcl::PointCloud<pcl::PointXYZ>::Ptr &
 		guess.col(3) = _translationPrediction;
 		guess.block<3, 3>(0, 0) = _qRotationPrediction.matrix();
 
-		hasConverged = transformCloudtoTargetCloudAndAddToHistory(_cloud, mCloud.makeShared(), _maxFittingScore, guess);
+		result = transformCloudtoTargetCloudAndAddToHistory(_cloud, mCloud.makeShared(), _maxFittingScore, guess);
 	}
 
-	if (hasConverged) {
+	
+	if ((result & eIcpResult::ValidTransformation) && (result & eIcpResult::GoodScore)) {
 		updateSensorPose(mCloudHistory.back()->sensor_origin_, mCloudHistory.back()->sensor_orientation_);
+	}
+	else if (result & eIcpResult::GoodScore) {
+		updateSensorPose(mICPres.block<4,1>(3,0), Quaternionf(mICPres.block<3,3>(0,0)));
 	}
 
 	if (mCloudHistory.size() >= mParams.historySize) {
@@ -151,10 +155,10 @@ bool EnvironmentMap::addPointsSimple(const pcl::PointCloud<pcl::PointXYZ>::Ptr &
 	}
 	
 
-	return hasConverged;
+	return result;
 }
 //---------------------------------------------------------------------------------------------------------------------
-bool EnvironmentMap::addPointsSequential(const PointCloud<PointXYZ>::Ptr & _cloud, const double _maxFittingScore, pcl::PointCloud< pcl::PointXYZ>::Ptr &_addedCloud) {
+int EnvironmentMap::addPointsSequential(const PointCloud<PointXYZ>::Ptr & _cloud, const double _maxFittingScore, pcl::PointCloud< pcl::PointXYZ>::Ptr &_addedCloud) {
 	/*// Store First cloud as reference
 	// 666 we store the actual first cloud instead of considering history, this means we accept the noise from the first cloud
 	if (mCloud.size() == 0) {
@@ -195,7 +199,7 @@ bool EnvironmentMap::addPointsSequential(const PointCloud<PointXYZ>::Ptr & _clou
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-bool EnvironmentMap::addPointsAccurate(const PointCloud<PointXYZ>::Ptr & _cloud,const double _maxFittingScore,  pcl::PointCloud< pcl::PointXYZ>::Ptr &_addedCloud) {
+int EnvironmentMap::addPointsAccurate(const PointCloud<PointXYZ>::Ptr & _cloud,const double _maxFittingScore,  pcl::PointCloud< pcl::PointXYZ>::Ptr &_addedCloud) {
 	/*// Store First cloud as reference
 	// 666 we store the actual first cloud instead of considering history, this means we accept the noise from the first cloud
 	if (mCloud.size() == 0) {
@@ -257,10 +261,10 @@ PointCloud<PointXYZRGB>::Ptr colorizePointCloud2(const PointCloud<PointXYZ>::Ptr
 	return colorizedCloud;
 }
 
-bool EnvironmentMap::transformCloudtoTargetCloudAndAddToHistory(const PointCloud<PointXYZ>::Ptr & _cloud, const PointCloud<PointXYZ>::Ptr & _target, const double _maxFittingScore, const Matrix4f &_guess)
+int EnvironmentMap::transformCloudtoTargetCloudAndAddToHistory(const PointCloud<PointXYZ>::Ptr & _cloud, const PointCloud<PointXYZ>::Ptr & _target, const double _maxFittingScore, const Matrix4f &_guess)
 {
 	if (_cloud->size() == 0)
-		return false;
+		return 0;
 
 	//temporary cleaned cloud for calculation of the transformation. We do not want to voxel in the camera coordinate system
 	//because we lose some points when rotating it to the map and voxeling there. That's why we rotate the original cloud
@@ -273,18 +277,22 @@ bool EnvironmentMap::transformCloudtoTargetCloudAndAddToHistory(const PointCloud
 	transformPointCloud(*voxel(filtered_cloud), mGuessCloud, _guess);
 	transformPointCloud(*filtered_cloud, filtered_cloudWCS, transformation);
 	mAlignedCloud = *voxel(filtered_cloudWCS.makeShared());
-
+	
+	int result = 0;
 	if (hasConverged || validT) {
 		if (!hasConverged && validT) {
 			cout << "--> MAP: ICP score is HIGH" << endl;
 			cout << "--> MAP: we will add the cloud becuase both the translation and rotation seem good" << endl;
+			result |= eIcpResult::ValidTransformation;
 		}
 		if (hasConverged && !validT) {
 			cout << "--> MAP: This is suspicious, ICP score is good, but the transformation is not close to the guess" << endl;
 			cout << "--> MAP: Possible CORRUPTED CLOUD with bad data or bad EKF prediction (if fast motion possible)" << endl;
+			result |= eIcpResult::HasConverged | eIcpResult::GoodScore;
 		}
 		if (hasConverged && validT) {
 			cout << "--> MAP: ICP GOOD, TRANSFORMATION GOOD" << endl;
+			result |= eIcpResult::HasConverged | eIcpResult::GoodScore | eIcpResult::ValidTransformation;
 		}
 
 		transformPointCloud(*filtered_cloud, filtered_cloudWCS, transformation);
@@ -297,11 +305,11 @@ bool EnvironmentMap::transformCloudtoTargetCloudAndAddToHistory(const PointCloud
 		voxeledFiltered_cloudWCS->sensor_orientation_ = Quaternionf(transformation.block<3, 3>(0, 0));
 		voxeledFiltered_cloudWCS->sensor_origin_ = transformation.col(3);
 		mCloudHistory.push_back(voxeledFiltered_cloudWCS);
-		return true;
+		return result;
 	}
 	else {
 		cout << "--> MAP: ICP failed, we keep EKF pose" << endl;
-		return false;
+		return 0;
 	}
 }
 
