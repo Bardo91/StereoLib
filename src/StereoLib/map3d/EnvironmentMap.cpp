@@ -132,11 +132,11 @@ int EnvironmentMap::addPointsSimple(const pcl::PointCloud<pcl::PointXYZ>::Ptr & 
 	}
 
 	
-	if ((result & eIcpResult::ValidTransformation) && (result & eIcpResult::GoodScore)) {
-		updateSensorPose(mCloudHistory.back()->sensor_origin_, mCloudHistory.back()->sensor_orientation_);
-	}
-	else if (result & eIcpResult::GoodScore) {
-		updateSensorPose(mICPres.block<4,1>(3,0), Quaternionf(mICPres.block<3,3>(0,0)));
+	if (result & eIcpResult::GoodScore) {
+		if(result & eIcpResult::ValidTransformation)
+			updateSensorPose(mCloudHistory.back()->sensor_origin_, mCloudHistory.back()->sensor_orientation_);
+		else
+			updateSensorPose(_translationPrediction, _qRotationPrediction);
 	}
 
 	if (mCloudHistory.size() >= mParams.historySize) {
