@@ -288,7 +288,7 @@ bool EnvironmentMap::transformCloudtoTargetCloudAndAddToHistory(const PointCloud
 	(*LogManager::get())["NewCloudFilteredCCS.txt"] << std::endl;
 	
 	Matrix4f transformation;
-<<<<<<< HEAD
+
 	PointCloud<PointXYZ> voxeledCloud = *voxel(filtered_cloud);
 	
 	(*LogManager::get())["NewCloudFilteredVoxeledCCS.txt"] << voxeledCloud.size() << "\t";
@@ -298,11 +298,9 @@ bool EnvironmentMap::transformCloudtoTargetCloudAndAddToHistory(const PointCloud
 	(*LogManager::get())["NewCloudFilteredVoxeledCCS.txt"] << std::endl;
 
 	
-	bool hasConverged = getTransformationBetweenPcs(voxeledCloud, *_target, transformation, _maxFittingScore, _guess);
-=======
 	pcl::PointCloud<pcl::PointXYZ> alignedCloud;
 	bool hasConverged = getTransformationBetweenPcs(*voxel(filtered_cloud), *_target, transformation, _maxFittingScore, _guess, alignedCloud);
->>>>>>> Linux_compileCompatibility
+
 	bool validT = validTransformation(transformation, _guess);
 
 	auto quatGuess = Quaternionf(_guess.block<3, 3>(0, 0));
