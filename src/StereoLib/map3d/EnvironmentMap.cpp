@@ -501,7 +501,8 @@ bool EnvironmentMap::getTransformationBetweenPcs(const PointCloud<PointXYZ>& _ne
 	_transformation = _initialGuess;
 	mPcJoiner.setMaxCorrespondenceDistance(mParams.icpMaxCorrespondenceDistance);
 	bool hasConvergedInSomeIteration = false;
-	for (int i = 0; i < mParams.icpMaxIcpIterations; ++i){
+	int i = 0;
+	for (i = 0; i < mParams.icpMaxIcpIterations; ++i){
 		// Estimate
 		
 		mPcJoiner.setInputSource(_newCloud.makeShared());
@@ -524,10 +525,10 @@ bool EnvironmentMap::getTransformationBetweenPcs(const PointCloud<PointXYZ>& _ne
 		hasConvergedInSomeIteration |= mPcJoiner.hasConverged();
 
 		if (mPcJoiner.getMaxCorrespondenceDistance() < 0.001) {
-			cout << "--> MAP: Exiting ICP iterations in " << i+1 << "/" << mParams.icpMaxIcpIterations<< " due to reached minimum correspondance limit" << endl;
 			break;
 		}
 	}
+	cout << "--> MAP: Exiting ICP iterations in " << i+1 << "/" << mParams.icpMaxIcpIterations << endl;
 
 	mFittingScore = mPcJoiner.getFitnessScore();
 	(*LogManager::get())["IcpLog.txt"] << mFittingScore << "\t";
