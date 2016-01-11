@@ -316,7 +316,7 @@ bool EnvironmentMap::transformCloudtoTargetCloudAndAddToHistory(const PointCloud
 	transformPointCloud(*filtered_cloud, filtered_cloudWCS, transformation);
 	mAlignedCloud = *voxel(filtered_cloudWCS.makeShared());
 
-	if (hasConverged || validT) {
+	if (hasConverged && validT) {
 		if (!hasConverged && validT) {
 			cout << "--> MAP: ICP score is HIGH" << endl;
 			cout << "--> MAP: we will add the cloud becuase both the translation and rotation seem good" << endl;
