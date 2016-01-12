@@ -509,8 +509,8 @@ bool EnvironmentMap::getTransformationBetweenPcs(const PointCloud<PointXYZ>& _ne
 		mPcJoiner.align(_alignedCloud, _transformation);
 		//accumulate transformation between each Iteration
 		if (mPcJoiner.getFinalTransformation().hasNaN()) {
-			continue;
 			std::cout << "--> MAP: Intermedial iteration of ICP throw transformation with NaN, skiping it and continuing iterations" << std::endl;
+			continue;
 		}else{
 			_transformation = mPcJoiner.getFinalTransformation();
 		}
