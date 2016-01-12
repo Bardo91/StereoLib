@@ -9,6 +9,8 @@
 #include "FloorSubstractorCCS.h"
 #include <algorithms/segmentation/color_clustering/types/ccsCreation.h>
 
+#include <utils/LogManager.h>
+
 using namespace cv;
 using namespace std;
 using namespace BOViL;
@@ -85,9 +87,9 @@ bool FloorSubstractorCCS::train(const std::vector<cv::Mat>& _images) {
 	devF[2] = sqrt(devF[2]/totalSize);
 
 
-	std::cout << "-> FLOORSUBSTRACTOR: channel H, mean: " << meanF[0] << " , dev: " << devF[0] << endl;
-	std::cout << "-> FLOORSUBSTRACTOR: channel S, mean: " << meanF[1] << " , dev: " << devF[1] << endl;
-	std::cout << "-> FLOORSUBSTRACTOR: channel V, mean: " << meanF[2] << " , dev: " << devF[2] << endl;
+	(*LogManager::get())["ConsoleOutput.txt"] << "-> FLOORSUBSTRACTOR: channel H, mean: " << meanF[0] << " , dev: " << devF[0] << endl;
+	(*LogManager::get())["ConsoleOutput.txt"] << "-> FLOORSUBSTRACTOR: channel S, mean: " << meanF[1] << " , dev: " << devF[1] << endl;
+	(*LogManager::get())["ConsoleOutput.txt"] << "-> FLOORSUBSTRACTOR: channel V, mean: " << meanF[2] << " , dev: " << devF[2] << endl;
 
 	int minH, maxH, minS, maxS,  minV, maxV;
 
@@ -121,7 +123,7 @@ bool FloorSubstractorCCS::train(const std::vector<cv::Mat>& _images) {
 		//waitKey();
 	}
 	score /= nSamples;
-	cout << "-> FLOORSUBSTRACTOR: Learning score :" << score << endl;
+	(*LogManager::get())["ConsoleOutput.txt"] << "-> FLOORSUBSTRACTOR: Learning score :" << score << endl;
 
 	if (score > 0.8) {
 		mIsTrained = true;

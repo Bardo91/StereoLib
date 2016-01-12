@@ -93,7 +93,7 @@ bool EnvironmentMap::addPoints(const pcl::PointCloud< pcl::PointXYZ>::Ptr &_clou
 			return addPointsSequential(_cloud, _maxFittingScore, _addedCloud);
 			break;
 		default:
-			cout << "--> MAP: Wrong argument for addPoints()" << endl;
+			(*LogManager::get())["ConsoleOutput.txt"] << "--> MAP: Wrong argument for addPoints()" << endl;
 			return false;
 			break;
 	}
@@ -103,7 +103,7 @@ bool EnvironmentMap::addPoints(const pcl::PointCloud< pcl::PointXYZ>::Ptr &_clou
 bool EnvironmentMap::addPointsSimple(const pcl::PointCloud<pcl::PointXYZ>::Ptr & _cloud, const Eigen::Vector4f &_translationPrediction, const Eigen::Quaternionf &_qRotationPrediction, const double _maxFittingScore, pcl::PointCloud< pcl::PointXYZ>::Ptr &_addedCloud) {
 	_addedCloud = _cloud;
 	if (_cloud->size() < 10) {
-		std::cout << "--> MAP: addPointsSimple detects that cloud has less than 10 points, ignoring it" << std::endl;
+		(*LogManager::get())["ConsoleOutput.txt"] << "--> MAP: addPointsSimple detects that cloud has less than 10 points, ignoring it" << std::endl;
 		return false;
 	}
 
@@ -111,7 +111,7 @@ bool EnvironmentMap::addPointsSimple(const pcl::PointCloud<pcl::PointXYZ>::Ptr &
 	if (mCloud.size() == 0) {
 		if (mCloudHistory.size() == 0) {
 			// Store First cloud as reference
-			cout << "--> MAP: This is the first point cloud, no map yet, adding to history" << endl;
+			(*LogManager::get())["ConsoleOutput.txt"] << "--> MAP: This is the first point cloud, no map yet, adding to history" << endl;
 			PointCloud<PointXYZ>::Ptr firstCloud = voxel(filter(_cloud));
 			firstCloud->sensor_origin_ = Vector4f(0,0,0,1);
 			firstCloud->sensor_orientation_ = Quaternionf::Identity();
@@ -120,7 +120,7 @@ bool EnvironmentMap::addPointsSimple(const pcl::PointCloud<pcl::PointXYZ>::Ptr &
 		}
 		// transform clouds to history until there are enough to make first map from history
 		else if (mCloudHistory.size() < mParams.historySize) {
-			cout << "--> MAP: This is point cloud Nr. " << mCloudHistory.size() + 1<< " of " << mParams.historySize << " needed for map.\n";
+			(*LogManager::get())["ConsoleOutput.txt"] << "--> MAP: This is point cloud Nr. " << mCloudHistory.size() + 1<< " of " << mParams.historySize << " needed for map.\n";
 			hasConverged = transformCloudtoTargetCloudAndAddToHistory(_cloud, mCloudHistory[0], _maxFittingScore, transformationFromSensor(mCloudHistory.back()));
 		}
 	}
@@ -139,7 +139,7 @@ bool EnvironmentMap::addPointsSimple(const pcl::PointCloud<pcl::PointXYZ>::Ptr &
 	}
 
 	if (mCloudHistory.size() >= mParams.historySize) {
-		cout << "--> MAP: Map extended" << endl;
+		(*LogManager::get())["ConsoleOutput.txt"] << "--> MAP: Map extended" << endl;
 		pcl::PointCloud<pcl::PointXYZ>::Ptr	lastJoinedCloud;
 		lastJoinedCloud = convoluteCloudsInQueue(mCloudHistory).makeShared();
 		mCloud += *lastJoinedCloud;
@@ -318,23 +318,23 @@ bool EnvironmentMap::transformCloudtoTargetCloudAndAddToHistory(const PointCloud
 
 	if (hasConverged && validT) {
 		if (!hasConverged && validT) {
-			cout << "--> MAP: ICP score is HIGH" << endl;
-			cout << "--> MAP: we will add the cloud becuase both the translation and rotation seem good" << endl;
+			(*LogManager::get())["ConsoleOutput.txt"] << "--> MAP: ICP score is HIGH" << endl;
+			(*LogManager::get())["ConsoleOutput.txt"] << "--> MAP: we will add the cloud becuase both the translation and rotation seem good" << endl;
 		}
 		if (hasConverged && !validT) {
-			cout << "--> MAP: This is suspicious, ICP score is good, but the transformation is not close to the guess" << endl;
-			cout << "--> MAP: Possible CORRUPTED CLOUD with bad data or bad EKF prediction (if fast motion possible)" << endl;
+			(*LogManager::get())["ConsoleOutput.txt"] << "--> MAP: This is suspicious, ICP score is good, but the transformation is not close to the guess" << endl;
+			(*LogManager::get())["ConsoleOutput.txt"] << "--> MAP: Possible CORRUPTED CLOUD with bad data or bad EKF prediction (if fast motion possible)" << endl;
 		}
 		if (hasConverged && validT) {
-			cout << "--> MAP: ICP GOOD, TRANSFORMATION GOOD" << endl;
+			(*LogManager::get())["ConsoleOutput.txt"] << "--> MAP: ICP GOOD, TRANSFORMATION GOOD" << endl;
 		}
 
 		transformPointCloud(*filtered_cloud, filtered_cloudWCS, transformation);
 		PointCloud<PointXYZ>::Ptr voxeledFiltered_cloudWCS = voxel(filtered_cloudWCS.makeShared());
 	
-		cout << "--> MAP: The filtered cloud has: " << filtered_cloudWCS.size() << "points" << endl;
-		cout << "--> MAP: The voxeled cloud has: " << voxeledFiltered_cloudWCS->size() << "points" << endl;
-		cout << "--> MAP: The guess of the transformation is" << endl << _guess << endl << "And the result is:" << endl << transformation << endl;
+		(*LogManager::get())["ConsoleOutput.txt"] << "--> MAP: The filtered cloud has: " << filtered_cloudWCS.size() << "points" << endl;
+		(*LogManager::get())["ConsoleOutput.txt"] << "--> MAP: The voxeled cloud has: " << voxeledFiltered_cloudWCS->size() << "points" << endl;
+		(*LogManager::get())["ConsoleOutput.txt"] << "--> MAP: The guess of the transformation is" << endl << _guess << endl << "And the result is:" << endl << transformation << endl;
 
 		voxeledFiltered_cloudWCS->sensor_orientation_ = Quaternionf(transformation.block<3, 3>(0, 0));
 		voxeledFiltered_cloudWCS->sensor_origin_ = transformation.col(3);
@@ -342,7 +342,7 @@ bool EnvironmentMap::transformCloudtoTargetCloudAndAddToHistory(const PointCloud
 		return true;
 	}
 	else {
-		cout << "--> MAP: ICP failed, we keep EKF pose" << endl;
+		(*LogManager::get())["ConsoleOutput.txt"] << "--> MAP: ICP failed, we keep EKF pose" << endl;
 		return false;
 	}
 }
@@ -510,7 +510,7 @@ bool EnvironmentMap::getTransformationBetweenPcs(const PointCloud<PointXYZ>& _ne
 		//accumulate transformation between each Iteration
 		if (mPcJoiner.getFinalTransformation().hasNaN()) {
 			continue;
-			std::cout << "--> MAP: Intermedial iteration of ICP throw transformation with NaN, skiping it and continuing iterations" << std::endl;
+			(*LogManager::get())["ConsoleOutput.txt"] << "--> MAP: Intermedial iteration of ICP throw transformation with NaN, skiping it and continuing iterations" << std::endl;
 		}else{
 			_transformation = mPcJoiner.getFinalTransformation();
 		}
@@ -528,7 +528,7 @@ bool EnvironmentMap::getTransformationBetweenPcs(const PointCloud<PointXYZ>& _ne
 			break;
 		}
 	}
-	cout << "--> MAP: Exiting ICP iterations in " << i+1 << "/" << mParams.icpMaxIcpIterations << endl;
+	(*LogManager::get())["ConsoleOutput.txt"] << "--> MAP: Exiting ICP iterations in " << i+1 << "/" << mParams.icpMaxIcpIterations << endl;
 
 	mFittingScore = mPcJoiner.getFitnessScore();
 	(*LogManager::get())["IcpLog.txt"] << mFittingScore << "\t";
@@ -544,8 +544,8 @@ bool EnvironmentMap::getTransformationBetweenPcs(const PointCloud<PointXYZ>& _ne
 		//exit(-1);
 	}
 
-	cout << "--> MAP: Time for alignment " << t << endl;
-	cout << "--> MAP: Fitness score " << mPcJoiner.getFitnessScore() << "   Has conveged? " << hasConverged << endl;
+	(*LogManager::get())["ConsoleOutput.txt"] << "--> MAP: Time for alignment " << t << endl;
+	(*LogManager::get())["ConsoleOutput.txt"] << "--> MAP: Fitness score " << mPcJoiner.getFitnessScore() << "   Has conveged? " << hasConverged << endl;
 
 	return hasConverged;
 }
@@ -586,9 +586,9 @@ PointCloud<PointXYZ> EnvironmentMap::convoluteCloudsOnGrid(const PointCloud<Poin
 			outCloud.push_back(point);
 		}
 	}
-	cout << "--> MAP: Size of first: " << _cloud1.size() << endl;
-	cout << "--> MAP: Size of second: " << _cloud2.size() << endl;
-	cout << "--> MAP: Size of result: " << outCloud.size() << endl;
+	(*LogManager::get())["ConsoleOutput.txt"] << "--> MAP: Size of first: " << _cloud1.size() << endl;
+	(*LogManager::get())["ConsoleOutput.txt"] << "--> MAP: Size of second: " << _cloud2.size() << endl;
+	(*LogManager::get())["ConsoleOutput.txt"] << "--> MAP: Size of result: " << outCloud.size() << endl;
 	return outCloud;
 }
 
@@ -602,8 +602,8 @@ bool EnvironmentMap::validTransformation(const Matrix4f & _transformation, const
 	float angleChange = rot.angularDistance(Quaternionf(_transformation.block<3, 3>(0, 0))) * 180 / M_PI;
 	(*LogManager::get())["IcpLog.txt"] << angleChange << "\t";
 	
-	cout << "--> MAP: ICP result is different to our provided guess by a translation of: " << endl << translationChange << endl;
-	cout << "--> MAP: and a rotation of " << endl << angleChange << "deg" << endl;
+	(*LogManager::get())["ConsoleOutput.txt"] << "--> MAP: ICP result is different to our provided guess by a translation of: " << endl << translationChange << endl;
+	(*LogManager::get())["ConsoleOutput.txt"] << "--> MAP: and a rotation of " << endl << angleChange << "deg" << endl;
 
 
 	if (angleChange < mParams.icpMaxAngleChangeCompared2ProvidedGuess && translationChange < mParams.icpMaxTranslationChangeCompared2ProvidedGuess) {

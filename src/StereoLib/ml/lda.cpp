@@ -324,7 +324,7 @@ namespace BOViL {
 		unsigned LDA::sampleZ(unsigned _m, unsigned _n, unsigned _word) {
 			// get old topic
 			unsigned oldtopic = mZ[_m][_n];
-			//std::cout << "oldtopic: " << oldtopic << std::endl;
+			//(*LogManager::get())["ConsoleOutput.txt"] << "oldtopic: " << oldtopic << std::endl;
 
 
 			// first decrement counts for this word/topic
@@ -351,7 +351,7 @@ namespace BOViL {
 					break;
 			}
 
-			//std::cout << "Newtopic: " << newtopic << std::endl;
+			//(*LogManager::get())["ConsoleOutput.txt"] << "Newtopic: " << newtopic << std::endl;
 			// increment counts for sampled topic
 			mNwz[_word][newtopic]++;
 			mNzm[newtopic][_m]++;

@@ -27,7 +27,7 @@ void ParallelFeatureMatcher::operator()(const cv::Range& range) const{
 	int end = epis.size()*(range.start+1)/8;
 
 	for (int i = ini; i < end; i++){
-		//std::cout << "Computing: " << i << std::endl;
+		//(*LogManager::get())["ConsoleOutput.txt"] << "Computing: " << i << std::endl;
 		if(!validLeft.contains(kps[i]))	// Ignore keypoint if it is outside valid region.
 			continue;
 

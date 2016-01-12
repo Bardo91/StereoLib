@@ -36,7 +36,7 @@ bool isBlurry(const Mat &_image, double _threshold) {
 	double vertBlurMetric = double(sum(dy)[0]) / sum(ddy)[0];
 
 	double blurriness = horiBlurMetric > vertBlurMetric ? horiBlurMetric : vertBlurMetric;
-	cout << horiBlurMetric << " " << vertBlurMetric << " ";
+	(*LogManager::get())["ConsoleOutput.txt"] << horiBlurMetric << " " << vertBlurMetric << " ";
 	(*LogManager::get())["CameraLog.txt"] << horiBlurMetric << "\t" << vertBlurMetric << "\t";
 	return horiBlurMetric > _threshold || vertBlurMetric > _threshold? true : false;
 }

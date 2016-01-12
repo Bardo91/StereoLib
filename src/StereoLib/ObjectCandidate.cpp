@@ -1,5 +1,4 @@
-#include "ObjectCandidate.h"
-#include "ObjectCandidate.h"
+//
 //
 //
 //
@@ -8,6 +7,8 @@
 
 #include "ObjectCandidate.h"
 #include <numeric>
+
+#include <utils/LogManager.h>
 
 using namespace pcl;
 using namespace cv;
@@ -120,12 +121,12 @@ void ObjectCandidate::matchSequentialCandidates(vector<ObjectCandidate> &_global
 		for (int i = 0; i < _newCandidates.size(); i++) {
 			int match = matchIndexDist[i].first;
 			if (match == -1) {
-				cout << "No match found, distance to closest is: " << matchIndexDist[i].second << " adding new candidate" << endl;
+				(*LogManager::get())["ConsoleOutput.txt"] << "No match found, distance to closest is: " << matchIndexDist[i].second << " adding new candidate" << endl;
 				_globalCandidates.push_back(_newCandidates[i]);
 			}
 			else {
 				_globalCandidates[match].update(_newCandidates[i]);
-				cout << i << ":found match with " << match << " distance is " << matchIndexDist[i].second << endl;
+				(*LogManager::get())["ConsoleOutput.txt"] << i << ":found match with " << match << " distance is " << matchIndexDist[i].second << endl;
 			}
 		}
 	} 
