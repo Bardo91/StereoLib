@@ -30,9 +30,17 @@ using namespace std;
 LogManager *LogManager::mInstance = nullptr;
 
 //---------------------------------------------------------------------------------------------------------------------
-void LogManager::init() {
-	if (mInstance == nullptr) {
+void LogManager::init(int _argc, char ** _argv) {
+	if (mInstance == nullptr && _argc == 2) {
 		mInstance = new LogManager();
+		//copy the config file to folder
+		ifstream file;
+		file.open(string(_argv[1]));
+		if (file.is_open()) {
+			ofstream copy(mInstance->mFolderBase + "config.json");
+			copy << file.rdbuf();
+			copy.close();
+		}
 	}
 }
 

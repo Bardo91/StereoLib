@@ -13,7 +13,7 @@
 
 class LogManager {
 public:
-	static void init();
+	static void init(int _argc, char ** _argv);
 	static LogManager *get();
 	static void end();
 
