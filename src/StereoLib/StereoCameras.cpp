@@ -32,8 +32,8 @@ void StereoCameras::calibrate(const vector<Mat> &_calibrationImages1, const vect
 		Mat i1 = _calibrationImages1[i];
 		Mat i2 = _calibrationImages2[i];
 
-		drawChessboardCorners(i1, Size(7,11), imagePoints1[i], imagePoints1[i].size() != 0);
-		drawChessboardCorners(i2, Size(7,11), imagePoints2[i], imagePoints2[i].size() != 0);
+		drawChessboardCorners(i1, _boardSize, imagePoints1[i], imagePoints1[i].size() != 0);
+		drawChessboardCorners(i2, _boardSize, imagePoints2[i], imagePoints2[i].size() != 0);
 
 		hconcat(i1,i2,i1);
 
