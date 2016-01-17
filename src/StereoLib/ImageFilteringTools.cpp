@@ -38,7 +38,7 @@ bool isBlurry(const Mat &_image, double _threshold) {
 	double blurriness = horiBlurMetric > vertBlurMetric ? horiBlurMetric : vertBlurMetric;
 	cout << horiBlurMetric << " " << vertBlurMetric << " ";
 	(*LogManager::get())["CameraLog.txt"] << horiBlurMetric << "\t" << vertBlurMetric << "\t";
-	return horiBlurMetric > _threshold || vertBlurMetric > _threshold? true : false;
+	return horiBlurMetric > _threshold || vertBlurMetric > _threshold || isnan(horiBlurMetric) || isnan(vertBlurMetric)? true : false;
 }
 
 void zeroCrossX(const cv::Mat &_binaryImage, cv::Mat &_output)
