@@ -461,20 +461,20 @@ double EnvironmentMap::distanceToPlane(const pcl::PointCloud<pcl::PointXYZ>::Ptr
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void EnvironmentMap::cropCloud(PointCloud<PointXYZ>::Ptr &_cloud, ModelCoefficients _plane, bool _upperSide) {
-	if (_cloud->size() == 0 || _plane.values.size() != 4)
+void EnvironmentMap::cropCloud(PointCloud<PointXYZ> &_cloud, ModelCoefficients _plane, double offset, bool _upperSide) {
+	if (_cloud.size() == 0 || _plane.values.size() != 4)
 		return;
 
 	auto predicate = [&](const PointXYZ &_point) {
 		double val = (-_plane.values[0] * _point.x - _plane.values[1] * _point.y - _plane.values[3])/_plane.values[2];
 
 		if(_upperSide)
-			return _point.z > val? true:false;
+			return _point.z > val + offset? true:false;
 		else
-			return _point.z > val? false:true;
+			return _point.z > val + offset? false:true;
 	};
 
-	_cloud->erase( std::remove_if(_cloud->begin(), _cloud->end(), predicate ), _cloud->end());
+	_cloud.erase( std::remove_if(_cloud.begin(), _cloud.end(), predicate ), _cloud.end());
 }
 
 //---------------------------------------------------------------------------------------------------------------------

@@ -95,7 +95,7 @@ public:		// Public interface
 	double distanceToPlane(const pcl::PointCloud<pcl::PointXYZ>::Ptr &_cloud, const pcl::ModelCoefficients &_plane);
 
 	/// Crop the map using a plane
-	void cropCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr &_cloud, pcl::ModelCoefficients _plane, bool _upperSide = true);
+	void cropCloud(pcl::PointCloud<pcl::PointXYZ> &_cloud, pcl::ModelCoefficients _plane, double offset = 0.0, bool _upperSide = true);
 
 	/// Filter internal pointcloud.
 	pcl::PointCloud<pcl::PointXYZ>::Ptr filter(const pcl::PointCloud<pcl::PointXYZ>::Ptr &_cloud);
