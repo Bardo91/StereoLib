@@ -427,22 +427,6 @@ PointCloud<PointXYZ> EnvironmentMap::cloud() {
 
 //---------------------------------------------------------------------------------------------------------------------
 ModelCoefficients  EnvironmentMap::extractFloor(const PointCloud<PointXYZ>::Ptr &_cloud) {
-	vector<PointCloud<PointXYZ>::Ptr> clusters;
-	clusterCloud(_cloud, clusters);
-
-	if(clusters.size() < 4)
-		return ModelCoefficients();
-
-	PointCloud<PointXYZ> farthestPoints;
-	Eigen::Vector4f pivotPt;
-	pivotPt << 0,0,0,1;
-	for (PointCloud<PointXYZ>::Ptr cluster: clusters) {
-		Eigen::Vector4f maxPt;
-		getMaxDistance(*cluster, pivotPt, maxPt);
-		PointXYZ point(maxPt(0), maxPt(1), maxPt(2));
-		farthestPoints.push_back(point);
-	}
-
 	ModelCoefficients::Ptr coefficients (new ModelCoefficients);
 	PointIndices::Ptr inliers (new PointIndices);
 	SACSegmentation<PointXYZ> seg;
@@ -450,7 +434,7 @@ ModelCoefficients  EnvironmentMap::extractFloor(const PointCloud<PointXYZ>::Ptr 
 	seg.setModelType (SACMODEL_PLANE);
 	seg.setMethodType (SAC_RANSAC);
 	seg.setDistanceThreshold (0.1);
-	seg.setInputCloud (farthestPoints.makeShared());
+	seg.setInputCloud (_cloud);
 	seg.segment (*inliers, *coefficients);
 
 	return *coefficients;

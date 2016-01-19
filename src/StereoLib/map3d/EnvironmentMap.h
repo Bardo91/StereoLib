@@ -62,12 +62,6 @@ public:		// Public interface
 		double	clusterTolerance;
 		int		minClusterSize;
 		int		maxClusterSize;
-
-		// Floor extractor
-		double			floorCameraMinAngle;
-		double			floorCameraMaxAngle;
-		double			floorDistanceThreshold;
-		unsigned		floorMaxIters;
 	};
 
 	/// Basic constructor. Initialize an empty map
@@ -94,7 +88,7 @@ public:		// Public interface
 	pcl::PointCloud<pcl::PointXYZ> cloud();
 
 
-	/// Look for planes in the given pointcloud.
+	/// Return a plane in a given cloud.
 	pcl::ModelCoefficients  extractFloor(const pcl::PointCloud<pcl::PointXYZ>::Ptr &_cloud);
 
 	/// Calculate the minimal distance from the given cluster to a plane.
@@ -135,7 +129,14 @@ private:	// Private methods
 
 	bool validTransformation(const Eigen::Matrix4f & _transformation, const Eigen::Matrix4f &_guess);
 
-	
+	//history calculation options
+	bool addPointsSimple(const pcl::PointCloud<pcl::PointXYZ>::Ptr & _cloud, const Eigen::Vector4f &_translationPrediction, const Eigen::Quaternionf &_qRotationPrediction,const double _maxFittingScore, pcl::PointCloud< pcl::PointXYZ>::Ptr &_addedCloud);
+	bool addPointsSequential(const pcl::PointCloud<pcl::PointXYZ>::Ptr & _cloud, const double _maxFittingScore, pcl::PointCloud< pcl::PointXYZ>::Ptr &_addedCloud);
+	bool addPointsAccurate(const pcl::PointCloud<pcl::PointXYZ>::Ptr & _cloud, const double _maxFittingScore, pcl::PointCloud< pcl::PointXYZ>::Ptr &_addedCloud);
+	bool transformCloudtoTargetCloudAndAddToHistory(const pcl::PointCloud<pcl::PointXYZ>::Ptr & _cloud, const pcl::PointCloud<pcl::PointXYZ>::Ptr & _target, const double _maxFittingScore, const Eigen::Matrix4f &_guess);
+	pcl::PointCloud<pcl::PointXYZ> convoluteCloudsInQueue(std::deque<pcl::PointCloud<pcl::PointXYZ>::Ptr> _cloudQueue);
+	Eigen::Vector3f originInverse(const pcl::PointCloud<pcl::PointXYZ>::Ptr &_cloud);
+	Eigen::Quaternionf sensorInverse(const pcl::PointCloud<pcl::PointXYZ>::Ptr &_cloud);
 private:	// Members
 	Params	mParams;
 
@@ -150,15 +151,6 @@ private:	// Members
 	Eigen::Matrix4f mICPres;
 	pcl::PointCloud<pcl::PointXYZ> mAlignedCloud;
 	pcl::PointCloud<pcl::PointXYZ> mGuessCloud;
-
-	//history calculation options
-	bool addPointsSimple(const pcl::PointCloud<pcl::PointXYZ>::Ptr & _cloud, const Eigen::Vector4f &_translationPrediction, const Eigen::Quaternionf &_qRotationPrediction,const double _maxFittingScore, pcl::PointCloud< pcl::PointXYZ>::Ptr &_addedCloud);
-	bool addPointsSequential(const pcl::PointCloud<pcl::PointXYZ>::Ptr & _cloud, const double _maxFittingScore, pcl::PointCloud< pcl::PointXYZ>::Ptr &_addedCloud);
-	bool addPointsAccurate(const pcl::PointCloud<pcl::PointXYZ>::Ptr & _cloud, const double _maxFittingScore, pcl::PointCloud< pcl::PointXYZ>::Ptr &_addedCloud);
-	bool transformCloudtoTargetCloudAndAddToHistory(const pcl::PointCloud<pcl::PointXYZ>::Ptr & _cloud, const pcl::PointCloud<pcl::PointXYZ>::Ptr & _target, const double _maxFittingScore, const Eigen::Matrix4f &_guess);
-	pcl::PointCloud<pcl::PointXYZ> convoluteCloudsInQueue(std::deque<pcl::PointCloud<pcl::PointXYZ>::Ptr> _cloudQueue);
-	Eigen::Vector3f originInverse(const pcl::PointCloud<pcl::PointXYZ>::Ptr &_cloud);
-	Eigen::Quaternionf sensorInverse(const pcl::PointCloud<pcl::PointXYZ>::Ptr &_cloud);
 };	// class EnvironmentMap
 
 #endif	//	ENVIRONMENTMAP_H_
