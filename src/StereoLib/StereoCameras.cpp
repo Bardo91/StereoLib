@@ -9,6 +9,8 @@
 
 #include <utils/LogManager.h>
 
+#include <opencv2/xfeatures2d.hpp>
+
 using namespace cv;
 using namespace std;
 using namespace pcl;
@@ -61,15 +63,15 @@ void StereoCameras::frames(Mat & _frame1, Mat & _frame2,  eFrameFixing _fixes) {
 		_frame1 = mCamera1.frame(true);
 		_frame2 = mCamera2.frame(true);
 		Size imageSize = _frame1.size();
-		Mat R1, R2, P1, P2, Q;
+		
 		Rect validRoi[2];
-		stereoRectify(mCamera1.matrix(), mCamera1.distCoeffs(), mCamera2.matrix(), mCamera2.distCoeffs(), imageSize, mR, mT, R1, R2, P1, P2, Q, CALIB_ZERO_DISPARITY, -1, imageSize, &validRoi[0], &validRoi[1]);
+		stereoRectify(mCamera1.matrix(), mCamera1.distCoeffs(), mCamera2.matrix(), mCamera2.distCoeffs(), imageSize, mR, mT, mR1, mR2, mP1, mP2, mQ, CALIB_ZERO_DISPARITY, -1, imageSize, &validRoi[0], &validRoi[1]);
 
 		Mat rmap[2][2];
 
 		// Calculate remap functions
-		initUndistortRectifyMap(mCamera1.matrix(), mCamera1.distCoeffs(), R1, P1, imageSize, CV_16SC2, rmap[0][0], rmap[0][1]);
-		initUndistortRectifyMap(mCamera2.matrix(), mCamera2.distCoeffs(), R2, P2, imageSize, CV_16SC2, rmap[1][0], rmap[1][1]);
+		initUndistortRectifyMap(mCamera1.matrix(), mCamera1.distCoeffs(), mR1, mP1, imageSize, CV_16SC2, rmap[0][0], rmap[0][1]);
+		initUndistortRectifyMap(mCamera2.matrix(), mCamera2.distCoeffs(), mR2, mP2, imageSize, CV_16SC2, rmap[1][0], rmap[1][1]);
 
 		// Undirstort and rectify images
 		Mat rectifiedFrame1, rectifiedFrame2;
@@ -82,17 +84,38 @@ void StereoCameras::frames(Mat & _frame1, Mat & _frame2,  eFrameFixing _fixes) {
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-Mat StereoCameras::disparity(const Mat & _frame1, const Mat & _frame2, unsigned _disparityRange, unsigned _blockSize) {
+Mat StereoCameras::disparity(const Mat & _frame1, const Mat & _frame2, unsigned _disparityRange, unsigned _blockSize, pcl::PointCloud<pcl::PointXYZ>::Ptr &_pointCloud) {
 	Ptr<StereoSGBM> disparityMaker = StereoSGBM::create(0, _disparityRange, _blockSize);
 
 	Mat disparity;
 	disparityMaker->compute(_frame1, _frame2, disparity);
-
 	double minVal,maxVal;
 
 	minMaxLoc( disparity, &minVal, &maxVal );
 	disparity.convertTo(disparity, CV_8UC1, 255/(maxVal - minVal));
 
+	if (_pointCloud) {
+		Mat imgDisparity32F, Q ;
+		mQ.convertTo(Q, CV_32F);
+		disparity.convertTo( imgDisparity32F, CV_32F, 1./255);
+		cv::Mat_<float> vec_tmp(4,1);
+		for(int y=0; y<imgDisparity32F.rows; ++y) {
+			for(int x=0; x<imgDisparity32F.cols; ++x) {
+				vec_tmp(0)=x; vec_tmp(1)=y; vec_tmp(2)=imgDisparity32F.at<int>(y,x);  vec_tmp(3)=1;
+				if(vec_tmp(2) == 0)
+					continue;
+				
+
+				vec_tmp = Q*vec_tmp;
+				vec_tmp /= vec_tmp(3);
+
+				if(abs(vec_tmp(0))>10 || abs(vec_tmp(1))>10 || abs(vec_tmp(2))>10 || vec_tmp(2) < 0)
+					continue;
+
+				_pointCloud->push_back(pcl::PointXYZ(10000000*vec_tmp(0),10000000*vec_tmp(1),10000000*vec_tmp(2)));
+			}
+		}
+	}
 	return disparity;
 }
 

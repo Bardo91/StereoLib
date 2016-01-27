@@ -47,7 +47,7 @@ public:
 	/// \param _frame2: second image.
 	/// \param _disparityRange: max separation of points.
 	/// \param _blockSize: block size.
-	cv::Mat disparity(const cv::Mat &_frame1, const cv::Mat &_frame2, unsigned _disparityRange, unsigned _blockSize);
+	cv::Mat disparity(const cv::Mat &_frame1, const cv::Mat &_frame2, unsigned _disparityRange, unsigned _blockSize, pcl::PointCloud<pcl::PointXYZ>::Ptr &_pointCloud);
 
 	/// Set width of ROI
 	/// \param _leftWidth: width of the ROI in the left image. In left image ROI goes from Right side to left side plus (width - _leftWidth) 
@@ -115,6 +115,9 @@ private:
 private:
 	Camera mCamera1, mCamera2;
 	cv::Mat mR, mT, mE, mF;
+
+	// only for rectified images
+	cv::Mat mR1, mR2, mP1, mP2, mQ;
 
 	cv::Rect mLeftRoi, mRightRoi;
 
