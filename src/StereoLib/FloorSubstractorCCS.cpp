@@ -91,12 +91,12 @@ bool FloorSubstractorCCS::train(const std::vector<cv::Mat>& _images) {
 
 	int minH, maxH, minS, maxS,  minV, maxV;
 
-	minH = (minH = meanF[0] - 3*devF[0]) < 0 ? 0 : minH;
-	minS = (minS = meanF[1] - 3*devF[1]) < 0 ? 0 : minS;
-	minV = (minV = meanF[2] - 3*devF[2]) < 0 ? 0 : minV;
-	maxH = (maxH = meanF[0] + 3*devF[0]) >180 ? 180 : maxH;
-	maxS = (maxS = meanF[1] + 3*devF[1]) >255 ? 255 : maxS;
-	maxV = (maxV = meanF[2] + 3*devF[2]) >255 ? 255 : maxV;
+	minH = (minH = meanF[0] - 2.0*devF[0]) < 0 ? 0 : minH;
+	minS = (minS = meanF[1] - 2.0*devF[1]) < 0 ? 0 : minS;
+	minV = (minV = meanF[2] - 2.0*devF[2]) < 0 ? 0 : minV;
+	maxH = (maxH = meanF[0] + 2.0*devF[0]) >180 ? 180 : maxH;
+	maxS = (maxS = meanF[1] + 2.0*devF[1]) >255 ? 255 : maxS;
+	maxV = (maxV = meanF[2] + 2.0*devF[2]) >255 ? 255 : maxV;
 
 
 	//mClusterizer = createSingleClusteredSpace(minH, maxH, minS, maxS, minV, maxV, 180, 255, 255, 36);
@@ -123,7 +123,7 @@ bool FloorSubstractorCCS::train(const std::vector<cv::Mat>& _images) {
 	score /= nSamples;
 	cout << "-> FLOORSUBSTRACTOR: Learning score :" << score << endl;
 
-	if (score > 0.8) {
+	if (score > 0.6) {
 		mIsTrained = true;
 	}
 	else {
@@ -145,9 +145,10 @@ bool FloorSubstractorCCS::substract(const cv::Mat & _in, cv::Mat & _out, cv::Mat
 	cv::cvtColor(_mask, _mask, CV_HSV2BGR);
 
 	cv::threshold(_mask, _mask, 50, 255, 1);
-	Mat element = getStructuringElement(MORPH_ELLIPSE, Size(2 * 5 + 1, 2 * 5 + 1), Point(5, 5));
+	Mat element = getStructuringElement(MORPH_ELLIPSE, Size(2 * 3 + 1, 2 * 3 + 1), Point(3, 3));
 	dilate(_mask, _mask, element);
 
 	bitwise_and(_in, _mask, _out);
+
 	return true;
 }
